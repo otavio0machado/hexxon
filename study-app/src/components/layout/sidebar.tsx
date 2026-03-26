@@ -10,6 +10,7 @@ import {
   Calendar,
   StickyNote,
   Network,
+  GraduationCap,
   PanelLeftClose,
   PanelLeft,
   Search,
@@ -21,10 +22,11 @@ const navItems = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, shortcut: "⌘1" },
   { href: "/disciplina/calculo-1", label: "Cálculo I", icon: BookOpen, shortcut: "" },
   { href: "/disciplina/mat-discreta", label: "Mat. Discreta", icon: BookOpen, shortcut: "" },
-  { href: "/mapa", label: "Mapa Conceitual", icon: Network, shortcut: "⌘4" },
-  { href: "/exercicios", label: "Exercícios", icon: Dumbbell, shortcut: "⌘5" },
-  { href: "/calendario", label: "Calendário", icon: Calendar, shortcut: "⌘6" },
-  { href: "/notas", label: "Notas", icon: StickyNote, shortcut: "⌘7" },
+  { href: "/provas", label: "Provas", icon: GraduationCap, shortcut: "⌘4" },
+  { href: "/mapa", label: "Mapa Conceitual", icon: Network, shortcut: "⌘5" },
+  { href: "/exercicios", label: "Exercícios", icon: Dumbbell, shortcut: "⌘6" },
+  { href: "/calendario", label: "Calendário", icon: Calendar, shortcut: "⌘7" },
+  { href: "/notas", label: "Notas", icon: StickyNote, shortcut: "⌘8" },
 ];
 
 export function Sidebar() {
