@@ -30,9 +30,8 @@ export async function POST() {
     for (const table of tables) {
       const { count } = await supabase
         .from(table)
-        .update({ user_id: user.id })
+        .update({ user_id: user.id }, { count: 'exact' })
         .is('user_id', null)
-        .select('*', { count: 'exact', head: true })
 
       results[table] = count ?? 0
     }
