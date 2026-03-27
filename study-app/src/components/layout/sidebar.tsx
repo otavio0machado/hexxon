@@ -30,7 +30,7 @@ const disciplineNavItems = getCurriculumDisciplines().map((discipline) => ({
 }));
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard, shortcut: "⌘1" },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, shortcut: "⌘1" },
   { href: "/materiais", label: "Materiais", icon: Files, shortcut: "⌘2" },
   { href: "/provas", label: "Provas", icon: GraduationCap, shortcut: "⌘4" },
   { href: "/diagnostico", label: "Diagnóstico", icon: Stethoscope, shortcut: "⌘5" },
@@ -100,7 +100,7 @@ export function Sidebar() {
             key={item.href}
             {...item}
             collapsed={collapsed}
-            active={pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))}
+            active={pathname === item.href || pathname.startsWith(item.href + "/")}
           />
         ))}
       </nav>

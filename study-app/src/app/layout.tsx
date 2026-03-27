@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { Sidebar } from "@/components/layout/sidebar";
-import { JarvisProvider } from "@/components/jarvis/jarvis-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "cogni. — Sistema de Estudo",
-  description: "Sistema cognitivo de estudo pessoal",
+  description: "Sistema cognitivo de estudo pessoal com IA",
 };
 
 export default function RootLayout({
@@ -29,14 +27,8 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
-      <body className="flex h-screen overflow-hidden bg-bg-primary text-fg-primary">
-        <Sidebar />
-        <main className="ml-60 flex-1 overflow-y-auto">
-          <div className="mx-auto max-w-[1280px] px-8 py-6">
-            {children}
-          </div>
-        </main>
-        <JarvisProvider />
+      <body className="bg-bg-primary text-fg-primary">
+        {children}
       </body>
     </html>
   );
