@@ -59,12 +59,6 @@ const SUGGESTIONS = [
 
 // ── Rich Markdown Renderer (react-markdown + KaTeX) ─────────
 
-import ReactMarkdown from 'react-markdown'
-import remarkMath from 'remark-math'
-import remarkGfm from 'remark-gfm'
-import rehypeKatex from 'rehype-katex'
-import 'katex/dist/katex.min.css'
-
 function MessageContent({ content }: { content: string }) {
   // Extract SVG blocks before markdown processing
   const segments = useMemo(() => {
