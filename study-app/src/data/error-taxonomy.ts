@@ -3,7 +3,7 @@
 // Taxonomia hierárquica: Categoria → Subcategoria → Padrão
 // ============================================================
 
-import type { MasteryLevel } from "./mock";
+import type { MasteryLevel } from "@/lib/supabase";
 
 // ── Enums ──
 

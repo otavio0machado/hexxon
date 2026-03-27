@@ -1,207 +1,474 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
-import { HealthOverview } from "@/components/diagnosis/health-overview";
-import { CategoryChart } from "@/components/diagnosis/category-chart";
-import { ErrorFeed } from "@/components/diagnosis/error-feed";
-import { ErrorDetail } from "@/components/diagnosis/error-detail";
-import { mockOccurrences, type ErrorOccurrence } from "@/data/error-taxonomy";
-import {
-  buildDiagnosticSummary,
-  getCategoryDistribution,
-  getPattern,
-  getTopRecommendations,
-  getSubcategoryLabel,
-} from "@/lib/error-diagnosis";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { getErrorOccurrences, resolveError, createErrorOccurrence } from "@/lib/services/exercises";
+import { getDisciplines, getAllTopics } from "@/lib/services/disciplines";
+import type { ErrorOccurrence, Discipline, Topic, ErrorCategory, ErrorSeverity } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
+import { AlertCircle, CheckCircle, Plus, X } from "lucide-react";
 
-type FilterDiscipline = "all" | "calculo-1" | "mat-discreta";
-type FilterStatus = "all" | "unresolved" | "unreviewed" | "resolved";
+type FilterStatus = "all" | "resolved" | "unresolved";
+
+const SEVERITY_MAP: Record<ErrorSeverity, { badge: "danger" | "warning" | "success"; label: string }> = {
+  critical: { badge: "danger", label: "Crítico" },
+  high: { badge: "danger", label: "Alto" },
+  medium: { badge: "warning", label: "Médio" },
+  low: { badge: "warning", label: "Baixo" },
+};
+
+const CATEGORY_MAP: Record<ErrorCategory, string> = {
+  conceptual: "Conceitual",
+  algebraic: "Algébrico",
+  logical: "Lógico",
+  interpretation: "Interpretação",
+  formalization: "Formalização",
+};
+
+const CATEGORY_COLORS: Record<ErrorCategory, string> = {
+  conceptual: "bg-accent-danger/20",
+  algebraic: "bg-accent-warning/20",
+  logical: "bg-accent-info/20",
+  interpretation: "bg-accent-success/20",
+  formalization: "bg-accent-primary/20",
+};
 
 export default function DiagnosticoPage() {
-  const [filterDisc, setFilterDisc] = useState<FilterDiscipline>("all");
+  const [errors, setErrors] = useState<ErrorOccurrence[]>([]);
+  const [disciplines, setDisciplines] = useState<Discipline[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [filterStatus, setFilterStatus] = useState<FilterStatus>("all");
-  const [selected, setSelected] = useState<ErrorOccurrence | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
-  const [aiResult, setAiResult] = useState<string | null>(null);
+  const [filterDisc, setFilterDisc] = useState<string>("all");
+  const [selectedError, setSelectedError] = useState<ErrorOccurrence | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  // Filter occurrences
-  const filtered = useMemo(() => {
-    let occs = [...mockOccurrences];
-    if (filterDisc !== "all") occs = occs.filter((o) => o.disciplineId === filterDisc);
-    if (filterStatus === "unresolved") occs = occs.filter((o) => !o.resolved);
-    if (filterStatus === "unreviewed") occs = occs.filter((o) => !o.reviewed);
-    if (filterStatus === "resolved") occs = occs.filter((o) => o.resolved);
-    return occs;
-  }, [filterDisc, filterStatus]);
+  // Form state
+  const [formData, setFormData] = useState({
+    exercise_statement: "",
+    student_answer: "",
+    correct_answer: "",
+    topic_id: "",
+    discipline_id: "",
+    category: "conceptual" as ErrorCategory,
+  });
 
-  // Summaries
-  const summaries = useMemo(() => [
-    buildDiagnosticSummary("calculo-1", "Cálculo I"),
-    buildDiagnosticSummary("mat-discreta", "Mat. Discreta"),
-  ], []);
-
-  const distribution = useMemo(() => getCategoryDistribution(
-    filterDisc === "all" ? mockOccurrences : mockOccurrences.filter((o) => o.disciplineId === filterDisc)
-  ), [filterDisc]);
-
-  const topRecs = useMemo(() => {
-    if (filterDisc === "all") {
-      return [
-        ...getTopRecommendations("calculo-1", 3),
-        ...getTopRecommendations("mat-discreta", 3),
-      ].sort((a, b) => b.occurrenceCount - a.occurrenceCount).slice(0, 5);
-    }
-    return getTopRecommendations(filterDisc, 5);
-  }, [filterDisc]);
-
-  const selectedPattern = selected ? getPattern(selected.patternId) : null;
-
-  const handleClassifyWithAI = useCallback(async (occ: ErrorOccurrence) => {
-    setAiLoading(true);
-    setAiResult(null);
-    try {
-      const res = await fetch("/api/ai/classify-error", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          exerciseStatement: occ.exerciseStatement,
-          correctAnswer: occ.correctAnswer,
-          studentAnswer: occ.studentAnswer,
-          topicName: occ.topicName,
-          courseName: occ.disciplineId === "calculo-1" ? "Cálculo I" : "Mat. Discreta",
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        setAiResult(`Erro: ${err.error?.message ?? "Falha na classificação."}`);
-      } else {
-        const { data } = await res.json();
-        setAiResult(
-          `Classe: ${data.errorClass} (${Math.round(data.confidence * 100)}%)\n` +
-          `Explicação: ${data.explanation}\n` +
-          `Raciocínio provável: ${data.likelyReasoning}\n` +
-          `Remediação: ${data.remediation}` +
-          (data.missingPrerequisite ? `\nPré-req faltante: ${data.missingPrerequisite}` : "")
-        );
+  // Load data
+  useEffect(() => {
+    async function load() {
+      try {
+        setLoading(true);
+        const [e, d, t] = await Promise.all([
+          getErrorOccurrences(100),
+          getDisciplines(),
+          getAllTopics(),
+        ]);
+        setErrors(e);
+        setDisciplines(d);
+        setTopics(t);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Erro ao carregar dados");
+      } finally {
+        setLoading(false);
       }
-    } catch {
-      setAiResult("Erro de rede. Verifique a conexão e a ANTHROPIC_API_KEY.");
-    } finally {
-      setAiLoading(false);
     }
+    load();
   }, []);
+
+  // Filter errors
+  const filtered = useMemo(() => {
+    let e = [...errors];
+    if (filterDisc !== "all") e = e.filter(err => err.discipline_id === filterDisc);
+    if (filterStatus === "resolved") e = e.filter(err => err.is_resolved);
+    if (filterStatus === "unresolved") e = e.filter(err => !err.is_resolved);
+    return e;
+  }, [errors, filterDisc, filterStatus]);
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const categoryDist = new Map<ErrorCategory, number>();
+    const severityDist = new Map<ErrorSeverity, number>();
+
+    errors.forEach(e => {
+      categoryDist.set(e.category, (categoryDist.get(e.category) ?? 0) + 1);
+      severityDist.set(e.severity, (severityDist.get(e.severity) ?? 0) + 1);
+    });
+
+    return {
+      total: errors.length,
+      resolved: errors.filter(e => e.is_resolved).length,
+      unresolved: errors.filter(e => !e.is_resolved).length,
+      categoryDist: Array.from(categoryDist.entries()),
+      severityDist: Array.from(severityDist.entries()),
+    };
+  }, [errors]);
+
+  // Handle resolve
+  const handleResolve = async (id: string) => {
+    try {
+      await resolveError(id);
+      setErrors(errors.map(e => e.id === id ? { ...e, is_resolved: true } : e));
+      setSelectedError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao resolver erro");
+    }
+  };
+
+  // Handle create error
+  const handleCreateError = async () => {
+    if (!formData.exercise_statement || !formData.student_answer || !formData.correct_answer || !formData.topic_id || !formData.discipline_id) {
+      setError("Preencha todos os campos");
+      return;
+    }
+
+    try {
+      const newError = await createErrorOccurrence({
+        exercise_statement: formData.exercise_statement,
+        student_answer: formData.student_answer,
+        correct_answer: formData.correct_answer,
+        topic_id: formData.topic_id,
+        discipline_id: formData.discipline_id,
+        category: formData.category,
+        severity: "medium",
+      });
+      setErrors([newError, ...errors]);
+      setShowModal(false);
+      setFormData({
+        exercise_statement: "",
+        student_answer: "",
+        correct_answer: "",
+        topic_id: "",
+        discipline_id: "",
+        category: "conceptual",
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Erro ao criar erro");
+    }
+  };
+
+  if (error) {
+    return (
+      <div className="space-y-4">
+        <h1 className="text-2xl font-semibold tracking-tight text-fg-primary">Diagnóstico de Erros</h1>
+        <div className="rounded-md border border-accent-danger/30 bg-accent-danger/5 p-4 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-accent-danger mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-accent-danger">Erro ao carregar</p>
+            <p className="text-xs text-fg-secondary mt-1">{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold tracking-tight text-fg-primary">Diagnóstico de Erros</h1>
-        <div className="flex items-center gap-2">
-          {([
-            { v: "all", l: "Todas" },
-            { v: "calculo-1", l: "Cálculo I" },
-            { v: "mat-discreta", l: "Discreta" },
-          ] as const).map((f) => (
-            <button
-              key={f.v}
-              onClick={() => setFilterDisc(f.v)}
-              className={`rounded-sm border px-2 py-0.5 text-xs transition-colors ${
-                filterDisc === f.v
-                  ? "border-accent-primary bg-accent-primary/10 text-accent-primary"
-                  : "border-border-default text-fg-tertiary hover:text-fg-secondary"
-              }`}
-            >
-              {f.l}
-            </button>
-          ))}
-        </div>
+        <button
+          onClick={() => setShowModal(true)}
+          className="rounded-md border border-accent-primary bg-accent-primary/10 px-3 py-1.5 text-xs font-medium text-accent-primary hover:bg-accent-primary/20 transition-colors flex items-center gap-2"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          Classificar novo erro
+        </button>
       </div>
 
-      {/* Health overview */}
-      <HealthOverview summaries={summaries} />
+      {/* Overview */}
+      {loading ? (
+        <div className="rounded-md border border-border-default bg-bg-surface p-8 text-center">
+          <p className="text-sm text-fg-tertiary">Carregando diagnóstico...</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-4 gap-4">
+          <div className="rounded-md border border-border-default bg-bg-surface p-3">
+            <p className="text-xs text-fg-tertiary mb-1">Total de Erros</p>
+            <p className="text-2xl font-bold text-fg-primary">{stats.total}</p>
+          </div>
+          <div className="rounded-md border border-border-default bg-bg-surface p-3">
+            <p className="text-xs text-fg-tertiary mb-1">Resolvidos</p>
+            <p className="text-2xl font-bold text-accent-success">{stats.resolved}</p>
+          </div>
+          <div className="rounded-md border border-border-default bg-bg-surface p-3">
+            <p className="text-xs text-fg-tertiary mb-1">Não Resolvidos</p>
+            <p className="text-2xl font-bold text-accent-danger">{stats.unresolved}</p>
+          </div>
+          <div className="rounded-md border border-border-default bg-bg-surface p-3">
+            <p className="text-xs text-fg-tertiary mb-1">Taxa de Resolução</p>
+            <p className="text-2xl font-bold text-accent-primary">
+              {stats.total > 0 ? Math.round((stats.resolved / stats.total) * 100) : 0}%
+            </p>
+          </div>
+        </div>
+      )}
 
-      {/* Distribution + Recommendations row */}
-      <div className="grid grid-cols-[1fr_1fr] gap-4">
-        <CategoryChart data={distribution} />
-
-        {/* Top recommendations */}
+      {/* Category distribution */}
+      <div className="grid grid-cols-2 gap-4">
         <div className="rounded-md border border-border-default bg-bg-surface p-4">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-fg-muted">
-            Ações Prioritárias
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-fg-muted mb-3">
+            Erros por Categoria
           </h3>
           <div className="space-y-2">
-            {topRecs.map((rec, i) => (
-              <div key={i} className="flex items-start gap-3 rounded-sm border border-border-subtle p-2.5">
-                <span className="mt-0.5 font-mono text-xs text-fg-muted">{i + 1}</span>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-fg-primary">{rec.recommendation.label}</p>
-                  <p className="text-xs text-fg-tertiary">{rec.pattern.name} · {rec.occurrenceCount}x</p>
+            {stats.categoryDist.map(([cat, count]) => (
+              <div key={cat} className="flex items-center gap-3">
+                <div className={`w-2 h-2 rounded-full ${CATEGORY_COLORS[cat]}`} />
+                <span className="text-xs text-fg-secondary flex-1">{CATEGORY_MAP[cat]}</span>
+                <span className="text-xs font-mono text-fg-muted">{count}</span>
+                <div className="h-1.5 rounded-full bg-border-default flex-1 max-w-xs">
+                  <div
+                    className="h-full bg-accent-primary rounded-full"
+                    style={{ width: `${(count / stats.total) * 100}%` }}
+                  />
                 </div>
-                <Badge variant={rec.recommendation.priority === 1 ? "danger" : "warning"}>
-                  ~{rec.recommendation.estimatedMinutes}min
-                </Badge>
               </div>
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Error feed + Detail */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-fg-tertiary">Filtrar:</span>
-        {([
-          { v: "all", l: "Todos" },
-          { v: "unresolved", l: "Não resolvidos" },
-          { v: "unreviewed", l: "Não revisados" },
-          { v: "resolved", l: "Resolvidos" },
-        ] as const).map((f) => (
-          <button
-            key={f.v}
-            onClick={() => setFilterStatus(f.v)}
-            className={`rounded-sm border px-2 py-0.5 text-xs transition-colors ${
-              filterStatus === f.v
-                ? "border-accent-primary bg-accent-primary/10 text-accent-primary"
-                : "border-border-default text-fg-tertiary hover:text-fg-secondary"
-            }`}
-          >
-            {f.l}
-          </button>
-        ))}
-        <span className="ml-auto font-mono text-xs text-fg-muted">{filtered.length} erros</span>
-      </div>
-
-      <div className="grid grid-cols-[360px_1fr] gap-4">
-        <ErrorFeed
-          occurrences={filtered}
-          onSelect={setSelected}
-          selectedId={selected?.id}
-        />
-
-        <div>
-          {selected && selectedPattern ? (
-            <>
-              <ErrorDetail
-                occurrence={selected}
-                pattern={selectedPattern}
-                onClassifyWithAI={handleClassifyWithAI}
-                aiLoading={aiLoading}
-              />
-              {aiResult && (
-                <div className="mt-4 rounded-md border border-accent-primary/30 bg-accent-primary/5 p-4">
-                  <h4 className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-primary">
-                    Reclassificação IA
-                  </h4>
-                  <pre className="whitespace-pre-wrap font-mono text-xs text-fg-secondary">{aiResult}</pre>
+        <div className="rounded-md border border-border-default bg-bg-surface p-4">
+          <h3 className="text-xs font-semibold uppercase tracking-widest text-fg-muted mb-3">
+            Erros por Severidade
+          </h3>
+          <div className="space-y-2">
+            {["critical", "high", "medium", "low"].map((sev) => {
+              const count = stats.severityDist.find(([s]) => s === sev)?.[1] ?? 0;
+              return (
+                <div key={sev} className="flex items-center gap-3">
+                  <Badge variant={SEVERITY_MAP[sev as ErrorSeverity].badge}>
+                    {SEVERITY_MAP[sev as ErrorSeverity].label}
+                  </Badge>
+                  <span className="text-xs font-mono text-fg-muted ml-auto">{count}</span>
                 </div>
-              )}
-            </>
-          ) : (
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* Error feed */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-fg-tertiary">Filtrar:</span>
+          {(["all", "unresolved", "resolved"] as const).map((s) => (
+            <button
+              key={s}
+              onClick={() => setFilterStatus(s)}
+              className={`rounded-sm border px-2 py-0.5 text-xs transition-colors ${
+                filterStatus === s
+                  ? "border-accent-primary bg-accent-primary/10 text-accent-primary"
+                  : "border-border-default text-fg-tertiary hover:text-fg-secondary"
+              }`}
+            >
+              {s === "all" ? "Todos" : s === "unresolved" ? "Não Resolvidos" : "Resolvidos"}
+            </button>
+          ))}
+
+          {/* Discipline filter */}
+          <select
+            value={filterDisc}
+            onChange={(e) => setFilterDisc(e.target.value)}
+            className="ml-auto rounded-sm border border-border-default bg-bg-primary px-2 py-0.5 text-xs text-fg-secondary"
+          >
+            <option value="all">Todas as Disciplinas</option>
+            {disciplines.map(d => (
+              <option key={d.id} value={d.id}>{d.name}</option>
+            ))}
+          </select>
+
+          <span className="font-mono text-xs text-fg-muted">{filtered.length} erros</span>
+        </div>
+
+        <div className="space-y-2 max-h-96 overflow-y-auto">
+          {filtered.length === 0 ? (
             <div className="rounded-md border border-border-default bg-bg-surface p-8 text-center">
-              <p className="text-sm text-fg-tertiary">Selecione um erro no histórico para ver o diagnóstico completo.</p>
+              <p className="text-sm text-fg-tertiary">Nenhum erro encontrado</p>
             </div>
+          ) : (
+            filtered.map(err => {
+              const topic = topics.find(t => t.id === err.topic_id);
+              const disc = disciplines.find(d => d.id === err.discipline_id);
+              const isExpanded = expandedId === err.id;
+
+              return (
+                <div
+                  key={err.id}
+                  className={`rounded-md border transition-colors cursor-pointer ${
+                    isExpanded
+                      ? "border-accent-primary/50 bg-accent-primary/5"
+                      : err.is_resolved
+                      ? "border-accent-success/30 bg-accent-success/5"
+                      : "border-accent-danger/30 bg-accent-danger/5"
+                  }`}
+                >
+                  <div
+                    onClick={() => setExpandedId(isExpanded ? null : err.id)}
+                    className="p-3 flex items-start gap-3"
+                  >
+                    {err.is_resolved ? (
+                      <CheckCircle className="w-4 h-4 text-accent-success mt-0.5 flex-shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-accent-danger mt-0.5 flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-2 mb-1">
+                        <Badge variant="warning">{CATEGORY_MAP[err.category]}</Badge>
+                        <Badge variant={SEVERITY_MAP[err.severity].badge}>
+                          {SEVERITY_MAP[err.severity].label}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-fg-secondary line-clamp-2">{err.exercise_statement}</p>
+                      <p className="text-xs text-fg-tertiary mt-1">
+                        {topic?.name} • {disc?.name}
+                      </p>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="border-t border-border-default p-3 space-y-3">
+                      <div>
+                        <p className="text-xs font-semibold text-fg-muted mb-1">Resposta do Aluno</p>
+                        <p className="text-sm text-fg-secondary bg-bg-primary rounded px-2 py-1">{err.student_answer}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-fg-muted mb-1">Resposta Correta</p>
+                        <p className="text-sm text-fg-secondary bg-bg-primary rounded px-2 py-1">{err.correct_answer}</p>
+                      </div>
+                      {err.ai_explanation && (
+                        <div>
+                          <p className="text-xs font-semibold text-fg-muted mb-1">Explicação IA</p>
+                          <p className="text-sm text-fg-secondary">{err.ai_explanation}</p>
+                        </div>
+                      )}
+                      {!err.is_resolved && (
+                        <button
+                          onClick={() => handleResolve(err.id)}
+                          className="w-full rounded border border-accent-success bg-accent-success/10 px-2 py-1.5 text-xs font-medium text-accent-success hover:bg-accent-success/20 transition-colors"
+                        >
+                          Marcar como Resolvido
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })
           )}
         </div>
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-bg-surface border border-border-default rounded-md p-6 max-w-md w-full space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-fg-primary">Classificar Novo Erro</h2>
+              <button onClick={() => setShowModal(false)} className="text-fg-tertiary hover:text-fg-secondary">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              <div>
+                <label className="text-xs font-medium text-fg-secondary block mb-1">Enunciado do Exercício</label>
+                <textarea
+                  value={formData.exercise_statement}
+                  onChange={(e) => setFormData({ ...formData, exercise_statement: e.target.value })}
+                  className="w-full rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm text-fg-primary resize-none"
+                  rows={2}
+                  placeholder="Digite o enunciado..."
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-fg-secondary block mb-1">Resposta do Aluno</label>
+                <textarea
+                  value={formData.student_answer}
+                  onChange={(e) => setFormData({ ...formData, student_answer: e.target.value })}
+                  className="w-full rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm text-fg-primary resize-none"
+                  rows={2}
+                  placeholder="O que o aluno respondeu..."
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-fg-secondary block mb-1">Resposta Correta</label>
+                <textarea
+                  value={formData.correct_answer}
+                  onChange={(e) => setFormData({ ...formData, correct_answer: e.target.value })}
+                  className="w-full rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm text-fg-primary resize-none"
+                  rows={2}
+                  placeholder="A resposta correta..."
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-fg-secondary block mb-1">Disciplina</label>
+                <select
+                  value={formData.discipline_id}
+                  onChange={(e) => setFormData({ ...formData, discipline_id: e.target.value })}
+                  className="w-full rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm text-fg-primary"
+                >
+                  <option value="">Selecione uma disciplina</option>
+                  {disciplines.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-fg-secondary block mb-1">Tópico</label>
+                <select
+                  value={formData.topic_id}
+                  onChange={(e) => setFormData({ ...formData, topic_id: e.target.value })}
+                  className="w-full rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm text-fg-primary"
+                >
+                  <option value="">Selecione um tópico</option>
+                  {topics
+                    .filter(t => !formData.discipline_id || t.discipline_id === formData.discipline_id)
+                    .map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-fg-secondary block mb-1">Categoria de Erro</label>
+                <select
+                  value={formData.category}
+                  onChange={(e) => setFormData({ ...formData, category: e.target.value as ErrorCategory })}
+                  className="w-full rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm text-fg-primary"
+                >
+                  {Object.entries(CATEGORY_MAP).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setShowModal(false)}
+                className="flex-1 rounded-md border border-border-default px-3 py-2 text-sm text-fg-secondary hover:text-fg-primary transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreateError}
+                className="flex-1 rounded-md bg-accent-primary px-3 py-2 text-sm text-bg-primary font-medium hover:bg-accent-primary/90 transition-colors"
+              >
+                Classificar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

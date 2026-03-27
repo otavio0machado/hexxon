@@ -16,6 +16,7 @@ import {
   PanelLeft,
   Search,
   Keyboard,
+  Bot,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,7 @@ const navItems = [
   { href: "/exercicios", label: "Exercícios", icon: Dumbbell, shortcut: "⌘7" },
   { href: "/calendario", label: "Calendário", icon: Calendar, shortcut: "⌘8" },
   { href: "/notas", label: "Notas", icon: StickyNote, shortcut: "⌘9" },
+  { href: "/jarvis", label: "JARVIS", icon: Bot, shortcut: "⌘J" },
 ];
 
 export function Sidebar() {
