@@ -10,6 +10,7 @@ import { getRecentSessions, getStudyStreak, getTotalStudyMinutes } from '@/lib/s
 import { getDueCount } from '@/lib/services/flashcards'
 import { getErrorOccurrences } from '@/lib/services/exercises'
 import { getActiveInsights } from '@/lib/services/insights-engine'
+import { getUserDocumentsSummary } from '@/lib/documents/search'
 
 export async function buildContext(
   currentPage: string,
@@ -123,7 +124,7 @@ export async function buildContext(
   }
 }
 
-export function buildSystemPrompt(ctx: JarvisContext): string {
+export async function buildSystemPrompt(ctx: JarvisContext): Promise<string> {
   const examWarnings = ctx.upcomingExams
     .filter(e => e.daysUntil <= 14)
     .map(e => `  - ${e.name} em ${e.daysUntil} dia(s) (${e.date})`)
@@ -161,6 +162,14 @@ export function buildSystemPrompt(ctx: JarvisContext): string {
   const noteContext = ctx.currentNoteContent
     ? `\nNOTA ABERTA:\nTítulo: ${ctx.currentNoteTitle ?? '(sem título)'}\nConteúdo (primeiros 2000 chars):\n${ctx.currentNoteContent.slice(0, 2000)}\n`
     : ''
+
+  // Document context
+  let documentContext = ''
+  try {
+    documentContext = await getUserDocumentsSummary()
+  } catch {
+    // Non-fatal
+  }
 
   return `Você é o JARVIS 3.0, o copiloto omnisciente do sistema de estudo cogni.
 Você não é um chatbot — você é um copiloto que OPERA o sistema inteiro, ANTECIPA necessidades e ORQUESTRA operações complexas.
@@ -205,7 +214,7 @@ ERROS:
 ${errorPatterns}
 
 ${examWarnings ? `⚠️ PROVAS PRÓXIMAS:\n${examWarnings}` : ''}
-
+${documentContext}
 TOOLS — DECISÃO:
 
 📊 DADOS: listNotes, listFlashcards, listExercises, listTopics, listDisciplines, listAssessments, listStudySessions, readNote

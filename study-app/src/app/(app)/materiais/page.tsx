@@ -8,6 +8,8 @@ import {
   listExerciseSourceDocuments,
 } from "@/lib/materials/server";
 import { MaterialUploadPanel } from "./material-upload-panel";
+import { UserDocumentsPanel } from "./user-documents-panel";
+import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +31,31 @@ export default async function MateriaisPage() {
       })),
     ]),
   );
+
+  // Fetch user documents from Supabase
+  let userDocuments: Array<{
+    id: string;
+    file_name: string;
+    doc_type: string;
+    processing_status: string;
+    file_size: number;
+    word_count: number | null;
+    page_count: number | null;
+    uploaded_at: string;
+    ai_analysis: { summary?: string; doc_type?: string } | null;
+    discipline_id: string | null;
+  }> = [];
+
+  try {
+    const supabase = await createClient();
+    const { data } = await supabase
+      .from("user_documents")
+      .select("id, file_name, doc_type, processing_status, file_size, word_count, page_count, uploaded_at, ai_analysis, discipline_id")
+      .order("uploaded_at", { ascending: false });
+    if (data) userDocuments = data;
+  } catch {
+    // Non-fatal — page still shows seed materials
+  }
 
   return (
     <div className="space-y-8">
@@ -66,6 +93,11 @@ export default async function MateriaisPage() {
           name: discipline.name,
         }))}
         topicOptionsByDiscipline={topicOptionsByDiscipline}
+      />
+
+      <UserDocumentsPanel
+        documents={userDocuments}
+        disciplines={disciplines.map((d) => ({ id: d.id, name: d.name }))}
       />
 
       {customDocuments.length > 0 && (

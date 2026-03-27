@@ -27,7 +27,7 @@ export async function orchestrate(
   model: ModelId,
   context: JarvisContext,
 ): Promise<OrchestratorResponse> {
-  const systemPrompt = buildSystemPrompt(context)
+  const systemPrompt = await buildSystemPrompt(context)
   const providerTools = toProviderTools()
 
   if (model === 'mix') {
@@ -462,7 +462,7 @@ export async function orchestrateStream(
   onPostActions: (actions: PostAction[]) => void,
   onMeta: (meta: JarvisMessage['meta']) => void,
 ): Promise<void> {
-  const systemPrompt = buildSystemPrompt(context)
+  const systemPrompt = await buildSystemPrompt(context)
   const providerTools = toProviderTools()
   const modelInfo = ModelRegistry[model]
 
