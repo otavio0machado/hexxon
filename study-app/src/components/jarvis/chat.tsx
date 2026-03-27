@@ -61,14 +61,14 @@ interface JarvisChatProps {
 }
 
 const SUGGESTIONS = [
-  { icon: Brain, text: 'Explica limites com analogias pro meu nível', tag: 'Explicação adaptativa' },
+  { icon: Zap, text: 'Me dê o briefing do dia', tag: 'Briefing diário' },
+  { icon: Calendar, text: 'Preciso tirar 8 na próxima prova. Cria a missão completa.', tag: 'Mission Mode' },
+  { icon: GitBranch, text: 'Qual o caminho mais rápido pra dominar limites?', tag: 'Learning Path' },
+  { icon: Dumbbell, text: 'Gere exercícios focados nas minhas fraquezas', tag: 'Exercícios smart' },
   { icon: GraduationCap, text: 'Me ajude a resolver esse exercício passo a passo', tag: 'Tutor socrático' },
-  { icon: Calendar, text: 'Gere um plano de estudo para a próxima prova', tag: 'Plano de estudo' },
-  { icon: Dumbbell, text: 'Gere exercícios focados nas minhas fraquezas', tag: 'Exercícios direcionados' },
-  { icon: GitBranch, text: 'Crie um mapa conceitual de derivadas', tag: 'Mermaid' },
-  { icon: Play, text: 'Crie uma visualização interativa de funções', tag: 'Interativo' },
-  { icon: Layers, text: 'Gere flashcards adaptativos sobre indução', tag: 'Flashcards smart' },
-  { icon: FileText, text: 'Resuma esse conteúdo extraindo definições', tag: 'Resumo IA' },
+  { icon: Brain, text: 'Qual meu readiness pra próxima prova?', tag: 'Readiness Report' },
+  { icon: Layers, text: 'O que preciso revisar hoje pra não esquecer?', tag: 'Forgetting Curve' },
+  { icon: Play, text: 'Simula a prova pra eu treinar sob pressão', tag: 'Battle Mode' },
 ]
 
 // Icon map for post-action buttons
@@ -692,13 +692,13 @@ export function JarvisChat({
             </div>
             <div className="flex items-center gap-2 mb-1">
               <h2 className="text-lg font-bold text-fg-primary">JARVIS</h2>
-              <span className="px-1.5 py-0.5 rounded bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-[10px] font-bold text-blue-400 tracking-wide">2.0</span>
+              <span className="px-1.5 py-0.5 rounded bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-cyan-500/20 text-[10px] font-bold text-blue-400 tracking-wide">3.0</span>
             </div>
             <p className="text-xs text-fg-tertiary mb-1 max-w-sm">
-              Copiloto de estudo adaptativo com tutor socrático, exercícios direcionados, planos de prova e visualizações interativas.
+              Copiloto omnisciente. Mission Mode, Learning Paths, Forgetting Curve, Simulados e Consciência Situacional.
             </p>
             <p className="text-[10px] text-fg-muted mb-6 max-w-xs">
-              Adapta-se ao seu nível de mastery e padrões de erro
+              Não espera ser perguntado — antecipa, conecta e age
             </p>
             <div className={`grid gap-2 w-full ${mode === 'floating' ? 'grid-cols-1 max-w-sm' : 'grid-cols-2 max-w-xl'}`}>
               {SUGGESTIONS.slice(0, mode === 'floating' ? 4 : 8).map((sugg, idx) => {

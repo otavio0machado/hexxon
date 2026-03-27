@@ -18,6 +18,11 @@ import { generateFlashcards as aiGenerateFlashcards } from '@/lib/ai/services/ge
 import { generateExercises as aiGenerateExercises } from '@/lib/ai/services/generate-exercises'
 import { generateExamPlan } from '@/lib/ai/services/generate-exam-plan'
 import { summarizeDocument } from '@/lib/ai/services/summarize-document'
+import { findLearningPath, findBlockerNodes, checkUnlocks, generateReadinessReport } from '@/lib/services/graph-intelligence'
+import { processLearningEvent, getTodayReviewQueue, type LearningEvent } from '@/lib/services/forgetting-curve'
+import { generateInsights, generateDailyBriefing, getActiveInsights } from '@/lib/services/insights-engine'
+import { composeSimulation } from '@/lib/services/exam-simulation'
+import { getAssessmentTopicIds } from '@/lib/services/assessments'
 import { generateNoteGraph } from '@/lib/ai/services/generate-note-graph'
 import { generateNoteInteractive } from '@/lib/ai/services/generate-note-interactive'
 
@@ -1067,6 +1072,484 @@ const tools: ToolDefinition[] = [
         })
       } catch (e) {
         return makeResult('', false, `Erro ao gerar interativo: ${(e as Error).message}`)
+      }
+    },
+  },
+
+  // ══════════════════════════════════════════════════════════
+  // JARVIS 3.0 — Graph Intelligence, Forgetting Curve,
+  // Insights, Simulation, and Mission Mode
+  // ══════════════════════════════════════════════════════════
+
+  // ── GRAPH INTELLIGENCE ─────────────────────────────────────
+
+  {
+    name: 'findLearningPath',
+    description: 'Find the optimal learning path to master a target topic using the knowledge graph. Shows prerequisites in order with estimated study hours.',
+    category: 'ai-services',
+    parameters: {
+      topic_name: { type: 'string', description: 'Name of the target topic to master' },
+    },
+    required: ['topic_name'],
+    execute: async (params, context) => {
+      try {
+        // Find the node ID from topic name
+        const topics = await getAllTopics()
+        const match = topics.find(t =>
+          t.name.toLowerCase().includes((params.topic_name as string).toLowerCase())
+        )
+        if (!match) return makeResult('', false, `Tópico "${params.topic_name}" não encontrado.`)
+
+        // Find kg_node for this topic
+        const { getGraphWithMastery } = await import('@/lib/services/knowledge-graph')
+        const graph = await getGraphWithMastery()
+        const node = graph.nodes.find(n => n.topic_id === match.id)
+        if (!node) return makeResult('', false, `Nó do grafo não encontrado para "${match.name}".`)
+
+        const path = await findLearningPath(node.id)
+        let response = `## Caminho para dominar: ${path.target}\n\n`
+        response += `**Total estimado:** ${path.totalEstimatedHours.toFixed(1)}h | **Bloqueadores:** ${path.blockerCount}\n\n`
+        for (const n of path.nodes) {
+          const icon = n.isTarget ? '🎯' : n.mastery === 'none' || n.mastery === 'exposed' ? '🔴' : '🟡'
+          response += `${n.order + 1}. ${icon} **${n.label}** — ${n.mastery} (${n.estimatedHours.toFixed(1)}h)\n`
+        }
+        return makeResult('', true, response, path)
+      } catch (e) {
+        return makeResult('', false, `Erro: ${(e as Error).message}`)
+      }
+    },
+  },
+
+  {
+    name: 'findBlockers',
+    description: 'Identify high-impact blocker topics in the knowledge graph that are blocking progress on multiple other topics.',
+    category: 'ai-services',
+    parameters: {
+      assessment_id: { type: 'string', description: 'Assessment ID to analyze blockers for (optional)' },
+    },
+    required: [],
+    execute: async (params, context) => {
+      try {
+        let topicIds: string[] = []
+        if (params.assessment_id) {
+          topicIds = await getAssessmentTopicIds(params.assessment_id as string)
+        } else if (context?.currentDisciplineId) {
+          const topics = await getTopicsByDiscipline(context.currentDisciplineId)
+          topicIds = topics.map(t => t.id)
+        } else {
+          const topics = await getAllTopics()
+          topicIds = topics.map(t => t.id)
+        }
+
+        const blockers = await findBlockerNodes(topicIds)
+        if (blockers.length === 0) return makeResult('', true, 'Nenhum bloqueador encontrado! Todos os pré-requisitos estão em dia.')
+
+        let response = '## Bloqueadores de Alto Impacto\n\n'
+        for (const b of blockers.slice(0, 8)) {
+          response += `- **${b.label}** (${b.mastery}) — bloqueia ${b.dependentCount} tópico(s), impacto: ${b.impactScore.toFixed(1)}\n`
+        }
+        response += '\nResolver esses bloqueadores primeiro desbloqueia mais progresso no grafo.'
+        return makeResult('', true, response, { blockers })
+      } catch (e) {
+        return makeResult('', false, `Erro: ${(e as Error).message}`)
+      }
+    },
+  },
+
+  {
+    name: 'getReadinessReport',
+    description: 'Generate a readiness report for an upcoming exam, showing mastery status per topic, blockers, and readiness score.',
+    category: 'ai-services',
+    parameters: {
+      assessment_id: { type: 'string', description: 'Assessment ID' },
+      assessment_name: { type: 'string', description: 'Assessment name' },
+    },
+    required: ['assessment_id', 'assessment_name'],
+    execute: async (params) => {
+      try {
+        const topicIds = await getAssessmentTopicIds(params.assessment_id as string)
+        const report = await generateReadinessReport(params.assessment_name as string, topicIds)
+
+        let response = `## Readiness: ${report.assessmentName}\n\n`
+        response += `**Score:** ${report.readinessScore}%\n\n`
+        response += '### Status por Tópico\n'
+        for (const t of report.topicStatuses) {
+          const icon = t.mastery === 'mastered' || t.mastery === 'proficient' ? '✅'
+            : t.mastery === 'developing' ? '⚠️' : '🔴'
+          response += `- ${icon} **${t.name}** — ${t.mastery} (${Math.round(t.score * 100)}%)`
+          if (t.isBlocked) response += ` [BLOQUEADO por: ${t.blockedBy?.join(', ')}]`
+          response += '\n'
+        }
+        if (report.criticalGaps.length > 0) {
+          response += `\n### Gaps Críticos\n${report.criticalGaps.map(g => `- ${g}`).join('\n')}\n`
+        }
+        if (report.blockerChain.length > 0) {
+          response += `\n### Cadeia de Bloqueadores\n${report.blockerChain.map(b => `- ${b.label} (bloqueia ${b.dependentCount} tópicos)`).join('\n')}\n`
+        }
+        return makeResult('', true, response, report)
+      } catch (e) {
+        return makeResult('', false, `Erro: ${(e as Error).message}`)
+      }
+    },
+  },
+
+  // ── FORGETTING CURVE ───────────────────────────────────────
+
+  {
+    name: 'logLearningEvent',
+    description: 'Log a learning event (study, exercise, review, etc.) and update the forgetting curve for that topic.',
+    category: 'progress',
+    parameters: {
+      topic_id: { type: 'string', description: 'Topic ID' },
+      event_type: { type: 'string', description: 'Event type', enum: ['flashcard_review', 'exercise_attempt', 'note_read', 'oral_practice', 'explanation_received', 'simulation_question'] },
+      quality: { type: 'number', description: 'Quality of recall 0-5 (0=forgot, 5=perfect)' },
+      source_id: { type: 'string', description: 'ID of the source item (flashcard, exercise, etc.)' },
+    },
+    required: ['topic_id', 'event_type', 'quality'],
+    execute: async (params) => {
+      try {
+        const state = await processLearningEvent({
+          topic_id: params.topic_id as string,
+          event_type: params.event_type as LearningEvent['event_type'],
+          quality: params.quality as number,
+          source_id: params.source_id as string | undefined,
+        })
+        return makeResult('', true, `Evento registrado. Estabilidade: ${state.stability}d, próxima revisão ótima: ${state.next_optimal_review?.slice(0, 10) ?? 'N/A'}`, state)
+      } catch (e) {
+        return makeResult('', false, `Erro: ${(e as Error).message}`)
+      }
+    },
+  },
+
+  {
+    name: 'getTodayReviews',
+    description: 'Get today\'s optimal review queue based on forgetting curves — what needs to be reviewed TODAY to prevent forgetting.',
+    category: 'progress',
+    parameters: {},
+    required: [],
+    execute: async (_, context) => {
+      try {
+        const topics = await getAllTopics()
+        const nameMap = new Map(topics.map(t => [t.id, t.name]))
+        const queue = await getTodayReviewQueue(nameMap)
+
+        if (queue.length === 0) return makeResult('', true, 'Nenhuma revisão urgente para hoje! Tudo em dia.')
+
+        let response = '## Fila de Revisão de Hoje\n\n'
+        for (const item of queue.slice(0, 10)) {
+          const icon = item.urgency === 'critical' ? '🔴' : item.urgency === 'high' ? '🟠' : item.urgency === 'medium' ? '🟡' : '🟢'
+          response += `${icon} **${item.topic_name}** — retenção: ${Math.round(item.retention_estimate * 100)}% | ${item.suggested_activity}\n`
+        }
+        return makeResult('', true, response, { queue })
+      } catch (e) {
+        return makeResult('', false, `Erro: ${(e as Error).message}`)
+      }
+    },
+  },
+
+  // ── INSIGHTS / SITUATIONAL AWARENESS ───────────────────────
+
+  {
+    name: 'getDailyBriefing',
+    description: 'Generate a comprehensive daily briefing with all active alerts, readiness scores, review queue, and recommended actions.',
+    category: 'ai-services',
+    parameters: {},
+    required: [],
+    execute: async () => {
+      try {
+        const briefing = await generateDailyBriefing()
+        return makeResult('', true, briefing)
+      } catch (e) {
+        return makeResult('', false, `Erro: ${(e as Error).message}`)
+      }
+    },
+  },
+
+  {
+    name: 'getInsights',
+    description: 'Get active Jarvis insights (smart alerts). These are cross-referenced signals about exam readiness, error patterns, flashcard decay, blockers, etc.',
+    category: 'ai-services',
+    parameters: {},
+    required: [],
+    execute: async () => {
+      try {
+        const insights = await getActiveInsights()
+        if (insights.length === 0) return makeResult('', true, 'Nenhum alerta ativo no momento.')
+        let response = `## ${insights.length} Alertas Ativos\n\n`
+        for (const i of insights.slice(0, 10)) {
+          const icon = i.priority === 'critical' ? '🔴' : i.priority === 'high' ? '🟠' : i.priority === 'medium' ? '🟡' : '🟢'
+          response += `${icon} **${i.title}**\n${i.body}\n\n`
+        }
+        return makeResult('', true, response, { insights })
+      } catch (e) {
+        return makeResult('', false, `Erro: ${(e as Error).message}`)
+      }
+    },
+  },
+
+  {
+    name: 'generateInsightsNow',
+    description: 'Run the cognitive engine to analyze all student data and generate fresh insights/alerts.',
+    category: 'ai-services',
+    parameters: {},
+    required: [],
+    execute: async () => {
+      try {
+        const insights = await generateInsights('jarvis_manual')
+        return makeResult('', true, `${insights.length} insight(s) gerados. Use getInsights ou getDailyBriefing para ver.`, { count: insights.length })
+      } catch (e) {
+        return makeResult('', false, `Erro: ${(e as Error).message}`)
+      }
+    },
+  },
+
+  // ── EXAM SIMULATION ────────────────────────────────────────
+
+  {
+    name: 'startExamSimulation',
+    description: 'Create and start an exam simulation for an assessment. Composes questions based on covered topics with difficulty calibrated to mastery level.',
+    category: 'ai-services',
+    parameters: {
+      assessment_id: { type: 'string', description: 'Assessment ID to simulate' },
+      assessment_name: { type: 'string', description: 'Assessment name' },
+      time_limit_min: { type: 'number', description: 'Time limit in minutes (default 90)' },
+      question_count: { type: 'number', description: 'Number of questions (default 5)' },
+    },
+    required: ['assessment_id', 'assessment_name'],
+    execute: async (params) => {
+      try {
+        const sim = await composeSimulation(
+          params.assessment_id as string,
+          params.assessment_name as string,
+          (params.time_limit_min as number) ?? 90,
+          (params.question_count as number) ?? 5,
+        )
+        let response = `## Simulado: ${sim.assessment_name}\n\n`
+        response += `**Tempo:** ${sim.time_limit_sec / 60}min | **Questões:** ${sim.questions.length}\n\n`
+        for (let i = 0; i < sim.questions.length; i++) {
+          const q = sim.questions[i]
+          response += `### Questão ${i + 1} (${q.topic_name}, dificuldade ${q.difficulty})\n${q.statement}\n\n`
+        }
+        response += `\n---\nResponda cada questão e me envie suas respostas para eu corrigir e analisar.`
+        return makeResult('', true, response, sim)
+      } catch (e) {
+        return makeResult('', false, `Erro: ${(e as Error).message}`)
+      }
+    },
+  },
+
+  // ── MISSION MODE (COMPOSITE OPERATIONS) ────────────────────
+
+  {
+    name: 'createMission',
+    description: 'Create a complete study mission for an exam goal. Orchestrates: analysis → plan → exercises → flashcards → notes. One command, full preparation.',
+    category: 'ai-services',
+    parameters: {
+      goal: { type: 'string', description: 'The mission goal (e.g., "Tirar 8 na P1 de Cálculo")' },
+      assessment_id: { type: 'string', description: 'Assessment ID' },
+      assessment_name: { type: 'string', description: 'Assessment name' },
+      exam_date: { type: 'string', description: 'Exam date YYYY-MM-DD' },
+      hours_per_day: { type: 'number', description: 'Hours available per day (default 3)' },
+    },
+    required: ['goal', 'assessment_id', 'assessment_name', 'exam_date'],
+    execute: async (params, context) => {
+      try {
+        const assessmentId = params.assessment_id as string
+        const assessmentName = params.assessment_name as string
+        const examDate = params.exam_date as string
+        const hoursPerDay = (params.hours_per_day as number) ?? 3
+
+        // 1. Readiness analysis
+        const topicIds = await getAssessmentTopicIds(assessmentId)
+        const report = await generateReadinessReport(assessmentName, topicIds)
+
+        // 2. Get topics data for plan generation
+        const allTopics = await getAllTopics()
+        const examTopics = allTopics.filter(t => topicIds.includes(t.id))
+
+        // 3. Generate study plan
+        const planResult = await generateExamPlan({
+          examName: assessmentName,
+          courseName: context?.currentDisciplineName ?? '',
+          examDate,
+          topics: examTopics.map(t => ({
+            name: t.name,
+            mastery: t.mastery as 'none' | 'exposed' | 'developing' | 'proficient' | 'mastered',
+            score: t.score ?? 0,
+          })),
+          hoursPerDay,
+          errorPatterns: context?.errorBreakdown.map(e => ({
+            class: e.category as 'conceptual' | 'procedural' | 'algebraic' | 'prerequisite' | 'reading',
+            count: e.count,
+          })),
+        })
+
+        // 4. Generate flashcards for weak topics
+        const weakTopics = examTopics.filter(t => t.mastery === 'none' || t.mastery === 'exposed' || t.mastery === 'developing')
+        let flashcardsCreated = 0
+        for (const topic of weakTopics.slice(0, 3)) {
+          try {
+            const fcResult = await aiGenerateFlashcards({
+              topicName: topic.name,
+              courseName: context?.currentDisciplineName ?? '',
+              masteryLevel: topic.mastery as 'none' | 'exposed' | 'developing' | 'proficient' | 'mastered',
+              count: 3,
+            })
+            for (const card of fcResult.data.cards) {
+              await createFlashcard({
+                topic_id: topic.id,
+                discipline_id: topic.discipline_id,
+                front: card.front,
+                back: card.back,
+                type: card.type,
+                difficulty: card.difficulty,
+                ai_generated: true,
+              })
+              flashcardsCreated++
+            }
+          } catch { /* continue */ }
+        }
+
+        // 5. Generate exercises for weak topics
+        let exercisesCreated = 0
+        for (const topic of weakTopics.slice(0, 3)) {
+          try {
+            const exResult = await aiGenerateExercises({
+              topicName: topic.name,
+              courseName: context?.currentDisciplineName ?? '',
+              masteryLevel: topic.mastery as 'none' | 'exposed' | 'developing' | 'proficient' | 'mastered',
+              count: 2,
+              difficulty: topic.mastery === 'none' ? 2 : 3,
+            })
+            const typeMap: Record<string, ExerciseType> = { 'multiple-choice': 'multiple_choice', 'open-ended': 'open_ended', 'proof': 'proof', 'computation': 'computation' }
+            for (const ex of exResult.data.exercises) {
+              await createExercise({
+                topic_id: topic.id,
+                discipline_id: topic.discipline_id,
+                statement: ex.statement,
+                type: typeMap[ex.type] ?? 'open_ended',
+                difficulty: ex.difficulty,
+                solution: ex.solution,
+                hints: ex.hints,
+                concepts_tested: ex.conceptsTested,
+                ai_generated: true,
+              })
+              exercisesCreated++
+            }
+          } catch { /* continue */ }
+        }
+
+        // 6. Create summary note
+        let noteCreated = false
+        try {
+          const weakNames = weakTopics.map(t => `${t.name} (${t.mastery})`).join(', ')
+          await createNote({
+            title: `Missão: ${params.goal}`,
+            content: `# ${params.goal}\n\n**Prova:** ${assessmentName} (${examDate})\n**Readiness:** ${report.readinessScore}%\n\n## Tópicos Fracos\n${weakNames}\n\n## Estratégia\n${planResult.data.strategy}\n\n## Tópicos de Risco\n${planResult.data.riskTopics.join(', ')}\n\n## Cronograma\n${planResult.data.blocks.map(b => `- Dia ${b.day}: ${b.topic} — ${b.activity} (${b.durationMin}min)`).join('\n')}`,
+            topic_id: examTopics[0]?.id ?? '',
+            discipline_id: examTopics[0]?.discipline_id ?? context?.currentDisciplineId ?? '',
+            format: 'summary' as NoteFormat,
+            key_concepts: planResult.data.riskTopics,
+            tags: ['missão', 'plano-de-estudo'],
+            ai_generated: true,
+          })
+          noteCreated = true
+        } catch { /* continue */ }
+
+        // 7. Build response
+        let response = `## Missão Criada: ${params.goal}\n\n`
+        response += `**Readiness atual:** ${report.readinessScore}%\n\n`
+        response += `✅ Plano de ${planResult.data.totalDays} dias gerado\n`
+        response += `✅ ${flashcardsCreated} flashcards criados (tópicos fracos)\n`
+        response += `✅ ${exercisesCreated} exercícios gerados (focados nos gaps)\n`
+        if (noteCreated) response += `✅ Nota-resumo da missão criada\n`
+        if (report.criticalGaps.length > 0) {
+          response += `\n⚠️ **Gaps críticos:** ${report.criticalGaps.join(', ')}\n`
+        }
+        if (report.blockerChain.length > 0) {
+          response += `⚠️ **Bloqueadores no grafo:** ${report.blockerChain.map(b => b.label).join(' → ')}\n`
+        }
+        response += `\n**Estratégia:** ${planResult.data.strategy}\n`
+        response += `\nVamos tirar esse nota, Otávio. 💪`
+
+        return makeResult('', true, response, {
+          readiness: report.readinessScore,
+          plan: planResult.data,
+          flashcardsCreated,
+          exercisesCreated,
+          noteCreated,
+        })
+      } catch (e) {
+        return makeResult('', false, `Erro ao criar missão: ${(e as Error).message}`)
+      }
+    },
+  },
+
+  {
+    name: 'prepareExamKit',
+    description: 'Quick exam preparation kit: generates flashcards + exercises + study plan for any assessment. Lighter than a full mission.',
+    category: 'ai-services',
+    parameters: {
+      assessment_id: { type: 'string', description: 'Assessment ID' },
+      assessment_name: { type: 'string', description: 'Assessment name' },
+      exam_date: { type: 'string', description: 'Exam date YYYY-MM-DD' },
+    },
+    required: ['assessment_id', 'assessment_name', 'exam_date'],
+    execute: async (params, context) => {
+      try {
+        const topicIds = await getAssessmentTopicIds(params.assessment_id as string)
+        const allTopics = await getAllTopics()
+        const examTopics = allTopics.filter(t => topicIds.includes(t.id))
+        const weakTopics = examTopics.filter(t => t.mastery === 'none' || t.mastery === 'exposed' || t.mastery === 'developing')
+
+        let flashcardsCreated = 0
+        let exercisesCreated = 0
+
+        // Generate flashcards
+        for (const topic of weakTopics.slice(0, 4)) {
+          try {
+            const result = await aiGenerateFlashcards({
+              topicName: topic.name,
+              courseName: context?.currentDisciplineName ?? '',
+              masteryLevel: topic.mastery as 'none' | 'exposed' | 'developing' | 'proficient' | 'mastered',
+              count: 2,
+            })
+            for (const card of result.data.cards) {
+              await createFlashcard({
+                topic_id: topic.id, discipline_id: topic.discipline_id,
+                front: card.front, back: card.back, type: card.type, difficulty: card.difficulty, ai_generated: true,
+              })
+              flashcardsCreated++
+            }
+          } catch { /* continue */ }
+        }
+
+        // Generate exercises
+        for (const topic of weakTopics.slice(0, 3)) {
+          try {
+            const result = await aiGenerateExercises({
+              topicName: topic.name,
+              courseName: context?.currentDisciplineName ?? '',
+              masteryLevel: topic.mastery as 'none' | 'exposed' | 'developing' | 'proficient' | 'mastered',
+              count: 2,
+            })
+            const typeMap: Record<string, ExerciseType> = { 'multiple-choice': 'multiple_choice', 'open-ended': 'open_ended', 'proof': 'proof', 'computation': 'computation' }
+            for (const ex of result.data.exercises) {
+              await createExercise({
+                topic_id: topic.id, discipline_id: topic.discipline_id,
+                statement: ex.statement, type: typeMap[ex.type] ?? 'open_ended', difficulty: ex.difficulty,
+                solution: ex.solution, hints: ex.hints, concepts_tested: ex.conceptsTested, ai_generated: true,
+              })
+              exercisesCreated++
+            }
+          } catch { /* continue */ }
+        }
+
+        return makeResult('', true, `Kit de estudo montado para ${params.assessment_name}:\n✅ ${flashcardsCreated} flashcards\n✅ ${exercisesCreated} exercícios\nTudo focado nos tópicos fracos: ${weakTopics.map(t => t.name).join(', ')}`, {
+          flashcardsCreated, exercisesCreated,
+        })
+      } catch (e) {
+        return makeResult('', false, `Erro: ${(e as Error).message}`)
       }
     },
   },

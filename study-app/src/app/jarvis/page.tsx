@@ -120,44 +120,44 @@ export default function JarvisPage() {
 
   const quickActions = [
     {
-      icon: GraduationCap,
-      label: 'Tutor socrático',
-      action: () => handleNewConversation('Me ajude a entender um conceito'),
-    },
-    {
-      icon: Dumbbell,
-      label: 'Exercícios smart',
-      action: () => handleNewConversation('Gere exercícios focados nas minhas fraquezas'),
+      icon: Sparkles,
+      label: 'Briefing',
+      action: () => handleNewConversation('Me dê o briefing do dia'),
     },
     {
       icon: Calendar,
-      label: 'Plano de prova',
-      action: () => handleNewConversation('Crie um plano de estudo para a próxima prova'),
-    },
-    {
-      icon: Layers,
-      label: 'Flashcards adaptativos',
-      action: () => handleNewConversation('Gere flashcards adaptativos para o tópico atual'),
+      label: 'Missão',
+      action: () => handleNewConversation('Cria uma missão completa pra minha próxima prova'),
     },
     {
       icon: GitBranch,
-      label: 'Mapa conceitual',
-      action: () => handleNewConversation('Crie um mapa conceitual do tópico'),
+      label: 'Learning Path',
+      action: () => handleNewConversation('Qual o caminho ótimo pra dominar o tópico atual?'),
     },
     {
       icon: Play,
-      label: 'Interativo',
-      action: () => handleNewConversation('Crie uma visualização interativa'),
-    },
-    {
-      icon: FileText,
-      label: 'Resumir conteúdo',
-      action: () => handleNewConversation('Resuma esse conteúdo extraindo definições e teoremas'),
+      label: 'Simulado',
+      action: () => handleNewConversation('Simula a próxima prova pra eu treinar'),
     },
     {
       icon: BarChart3,
-      label: 'Diagnóstico',
-      action: () => handleNewConversation('Analise meus erros e sugira melhorias'),
+      label: 'Readiness',
+      action: () => handleNewConversation('Qual meu readiness pra próxima prova?'),
+    },
+    {
+      icon: Layers,
+      label: 'Revisão FSRS',
+      action: () => handleNewConversation('O que preciso revisar hoje pra não esquecer?'),
+    },
+    {
+      icon: Dumbbell,
+      label: 'Exercícios',
+      action: () => handleNewConversation('Gere exercícios focados nas minhas fraquezas'),
+    },
+    {
+      icon: GraduationCap,
+      label: 'Tutor',
+      action: () => handleNewConversation('Me ajude a entender um conceito'),
     },
   ]
 
@@ -298,9 +298,9 @@ export default function JarvisPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl font-bold text-fg-primary">JARVIS</h1>
-                  <span className="px-1.5 py-0.5 rounded bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-[10px] font-bold text-blue-400 tracking-wide">2.0</span>
+                  <span className="px-1.5 py-0.5 rounded bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-cyan-500/20 text-[10px] font-bold text-blue-400 tracking-wide">3.0</span>
                 </div>
-                <p className="text-[11px] text-fg-muted">Copiloto adaptativo com tutor, exercícios e visualizações</p>
+                <p className="text-[11px] text-fg-muted">Copiloto omnisciente — Mission Mode, Learning Paths, Simulados</p>
               </div>
             </div>
             {totalCost > 0 && (
