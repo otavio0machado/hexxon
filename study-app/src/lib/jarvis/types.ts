@@ -96,6 +96,7 @@ export interface ToolParameter {
   type: 'string' | 'number' | 'boolean' | 'array'
   description: string
   enum?: string[]
+  items?: { type: string; properties?: Record<string, unknown>; required?: string[] }
 }
 
 export interface ToolCall {

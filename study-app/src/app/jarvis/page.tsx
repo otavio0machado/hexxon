@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { usePathname } from 'next/navigation'
 import {
   Plus,
@@ -13,79 +13,149 @@ import {
   Trash2,
   Sparkles,
   DollarSign,
+  Loader2,
 } from 'lucide-react'
 import { JarvisChat } from '@/components/jarvis/chat'
-
-interface Conversation {
-  id: string
-  title: string
-  timestamp: number
-}
+import {
+  getConversations,
+  createConversation,
+  deleteConversation as deleteConv,
+  type ConversationRow,
+} from '@/lib/services/conversations'
 
 export default function JarvisPage() {
   const pathname = usePathname()
-  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [conversations, setConversations] = useState<ConversationRow[]>([])
   const [activeConversation, setActiveConversation] = useState<string | null>(null)
   const [totalCost, setTotalCost] = useState(0)
-  const chatRef = useRef<HTMLDivElement>(null)
+  const [loadingConversations, setLoadingConversations] = useState(true)
+  // Force chat remount when switching conversations
+  const [chatKey, setChatKey] = useState(0)
 
-  const createNewConversation = (title: string) => {
-    const newConv: Conversation = {
-      id: `conv_${Date.now()}`,
-      title,
-      timestamp: Date.now(),
+  // Load conversations from Supabase on mount
+  useEffect(() => {
+    loadConversations()
+  }, [])
+
+  // Recalculate total cost whenever conversations change
+  useEffect(() => {
+    const cost = conversations.reduce((sum, c) => sum + Number(c.total_cost_usd || 0), 0)
+    setTotalCost(cost)
+  }, [conversations])
+
+  const loadConversations = async () => {
+    try {
+      setLoadingConversations(true)
+      const data = await getConversations(50)
+      setConversations(data)
+    } catch {
+      // silently fail
+    } finally {
+      setLoadingConversations(false)
     }
-    setConversations((prev) => [newConv, ...prev])
-    setActiveConversation(newConv.id)
   }
 
-  const deleteConversation = (id: string) => {
+  const handleNewConversation = async (title: string) => {
+    try {
+      const conv = await createConversation({ title })
+      setConversations((prev) => [conv, ...prev])
+      setActiveConversation(conv.id)
+      setChatKey((k) => k + 1)
+    } catch {
+      // fallback: create locally
+      const localId = `local_${Date.now()}`
+      setActiveConversation(localId)
+      setChatKey((k) => k + 1)
+    }
+  }
+
+  const handleDeleteConversation = async (id: string) => {
+    try {
+      await deleteConv(id)
+    } catch {
+      // continue with local removal
+    }
     setConversations((prev) => prev.filter((conv) => conv.id !== id))
     if (activeConversation === id) {
       setActiveConversation(null)
+      setChatKey((k) => k + 1)
     }
   }
+
+  const handleSelectConversation = (id: string) => {
+    if (id === activeConversation) return
+    setActiveConversation(id)
+    setChatKey((k) => k + 1)
+  }
+
+  // Called by JarvisChat when it auto-creates a conversation
+  const handleConversationCreated = useCallback((conv: ConversationRow) => {
+    setConversations((prev) => {
+      // Avoid duplicates
+      if (prev.some((c) => c.id === conv.id)) return prev
+      return [conv, ...prev]
+    })
+    setActiveConversation(conv.id)
+  }, [])
+
+  // Called by JarvisChat when it updates the title
+  const handleConversationUpdated = useCallback((id: string, title: string) => {
+    setConversations((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, title } : c))
+    )
+  }, [])
 
   const quickActions = [
     {
       icon: StickyNote,
       label: 'Criar nota',
-      action: () =>
-        createNewConversation('Criar nota sobre tópico de estudo'),
+      action: () => handleNewConversation('Criar nota sobre tópico de estudo'),
     },
     {
       icon: Layers,
       label: 'Gerar flashcards',
-      action: () => createNewConversation('Gerar flashcards'),
+      action: () => handleNewConversation('Gerar flashcards'),
     },
     {
       icon: Dumbbell,
       label: 'Plano de estudo',
-      action: () =>
-        createNewConversation('Criar plano de estudo para prova'),
+      action: () => handleNewConversation('Criar plano de estudo para prova'),
     },
     {
       icon: Brain,
       label: 'Revisar flashcards',
-      action: () => createNewConversation('Flashcards para revisar'),
+      action: () => handleNewConversation('Flashcards para revisar'),
     },
     {
       icon: BarChart3,
       label: 'Diagnóstico',
-      action: () =>
-        createNewConversation('Analisar erros e sugerir melhorias'),
+      action: () => handleNewConversation('Analisar erros e sugerir melhorias'),
     },
   ]
+
+  const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr)
+    const now = new Date()
+    const diffMs = now.getTime() - d.getTime()
+    const diffMins = Math.floor(diffMs / 60000)
+    if (diffMins < 1) return 'agora'
+    if (diffMins < 60) return `${diffMins}min atrás`
+    const diffHours = Math.floor(diffMins / 60)
+    if (diffHours < 24) return `${diffHours}h atrás`
+    const diffDays = Math.floor(diffHours / 24)
+    if (diffDays < 7) return `${diffDays}d atrás`
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+  }
 
   return (
     <div className="flex h-screen bg-bg-primary">
       {/* Sidebar */}
-      <div className="w-60 border-r border-border-default flex flex-col bg-bg-secondary">
+      <div className="w-64 border-r border-border-default flex flex-col bg-bg-secondary">
         {/* Header */}
         <div className="px-4 py-4 border-b border-border-default">
           <button
-            onClick={() => createNewConversation('Nova conversa')}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2 rounded bg-accent-primary hover:bg-accent-primary/90 transition-colors text-bg-primary font-semibold text-sm"
+            onClick={() => handleNewConversation('Nova conversa')}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-accent-primary hover:bg-accent-primary/90 transition-colors text-bg-primary font-semibold text-sm"
           >
             <Plus className="w-4 h-4" />
             Nova conversa
@@ -94,7 +164,7 @@ export default function JarvisPage() {
 
         {/* Quick Actions */}
         <div className="px-4 py-4 border-b border-border-default space-y-2">
-          <h3 className="text-xs font-semibold text-text-fg-tertiary uppercase tracking-wider mb-3">
+          <h3 className="text-xs font-semibold text-fg-tertiary uppercase tracking-wider mb-3">
             Ações rápidas
           </h3>
           {quickActions.map((action) => {
@@ -103,7 +173,7 @@ export default function JarvisPage() {
               <button
                 key={action.label}
                 onClick={action.action}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded bg-bg-tertiary hover:bg-bg-surface transition-colors text-text-fg-secondary hover:text-text-fg-primary text-xs font-medium"
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-bg-tertiary hover:bg-bg-surface transition-colors text-fg-secondary hover:text-fg-primary text-xs font-medium"
               >
                 <Icon className="w-4 h-4" />
                 {action.label}
@@ -113,39 +183,53 @@ export default function JarvisPage() {
         </div>
 
         {/* Conversation History */}
-        <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
-          {conversations.length === 0 ? (
+        <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5">
+          {loadingConversations ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="w-5 h-5 animate-spin text-fg-muted" />
+            </div>
+          ) : conversations.length === 0 ? (
             <div className="text-center py-8">
-              <MessageSquare className="w-8 h-8 text-text-fg-tertiary mx-auto mb-2" />
-              <p className="text-xs text-text-fg-tertiary">
+              <MessageSquare className="w-8 h-8 text-fg-tertiary mx-auto mb-2" />
+              <p className="text-xs text-fg-tertiary">
                 Nenhuma conversa ainda
               </p>
             </div>
           ) : (
             <>
-              <h3 className="text-xs font-semibold text-text-fg-tertiary uppercase tracking-wider mb-3">
+              <h3 className="text-xs font-semibold text-fg-tertiary uppercase tracking-wider mb-3 px-1">
                 Histórico
               </h3>
               {conversations.map((conv) => (
                 <div
                   key={conv.id}
-                  className={`p-2 rounded transition-colors group relative ${
+                  className={`px-3 py-2.5 rounded-lg transition-colors group relative cursor-pointer ${
                     activeConversation === conv.id
-                      ? 'bg-accent-primary text-bg-primary'
-                      : 'bg-bg-tertiary hover:bg-bg-surface text-text-fg-secondary hover:text-text-fg-primary'
+                      ? 'bg-blue-500/15 border border-blue-500/25'
+                      : 'hover:bg-bg-tertiary border border-transparent'
                   }`}
+                  onClick={() => handleSelectConversation(conv.id)}
                 >
-                  <button
-                    onClick={() => setActiveConversation(conv.id)}
-                    className="w-full text-left text-xs font-medium truncate pr-6"
-                  >
+                  <p className={`text-xs font-medium truncate pr-6 ${
+                    activeConversation === conv.id ? 'text-blue-400' : 'text-fg-secondary'
+                  }`}>
                     {conv.title}
-                  </button>
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] text-fg-muted">
+                      {formatDate(conv.updated_at)}
+                    </span>
+                    {conv.message_count > 0 && (
+                      <span className="text-[10px] text-fg-muted">
+                        · {conv.message_count} msgs
+                      </span>
+                    )}
+                  </div>
                   <button
-                    onClick={() => deleteConversation(conv.id)}
-                    className="absolute top-1/2 right-2 -translate-y-1/2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/20"
+                    onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conv.id) }}
+                    className="absolute top-1/2 right-2 -translate-y-1/2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20"
                   >
-                    <Trash2 className="w-3 h-3" />
+                    <Trash2 className="w-3 h-3 text-fg-muted hover:text-red-400" />
                   </button>
                 </div>
               ))}
@@ -156,11 +240,11 @@ export default function JarvisPage() {
         {/* Cost Tracker */}
         <div className="px-4 py-3 border-t border-border-default">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-text-fg-tertiary">Custo total:</span>
+            <span className="text-xs text-fg-tertiary">Custo total:</span>
             <div className="flex items-center gap-1">
               <DollarSign className="w-3 h-3 text-accent-primary" />
-              <span className="text-sm font-semibold text-text-fg-primary">
-                {totalCost.toFixed(4)}
+              <span className="text-sm font-semibold text-fg-primary">
+                ${totalCost.toFixed(4)}
               </span>
             </div>
           </div>
@@ -174,22 +258,27 @@ export default function JarvisPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Sparkles className="w-6 h-6 text-accent-primary" />
-              <h1 className="text-2xl font-bold text-text-fg-primary">JARVIS</h1>
+              <h1 className="text-2xl font-bold text-fg-primary">JARVIS</h1>
             </div>
-            <div className="flex items-center gap-4">
-              {totalCost > 0 && (
-                <div className="flex items-center gap-2 text-sm text-text-fg-secondary">
-                  <DollarSign className="w-4 h-4" />
-                  <span>Gastos nesta sessão: ${totalCost.toFixed(4)}</span>
-                </div>
-              )}
-            </div>
+            {totalCost > 0 && (
+              <div className="flex items-center gap-2 text-sm text-fg-secondary">
+                <DollarSign className="w-4 h-4" />
+                <span>Gastos totais: ${totalCost.toFixed(4)}</span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Chat Area */}
-        <div ref={chatRef} className="flex-1 overflow-hidden">
-          <JarvisChat mode="fullpage" currentPage={pathname} />
+        <div className="flex-1 overflow-hidden">
+          <JarvisChat
+            key={chatKey}
+            mode="fullpage"
+            currentPage={pathname}
+            conversationId={activeConversation}
+            onConversationCreated={handleConversationCreated}
+            onConversationUpdated={handleConversationUpdated}
+          />
         </div>
       </div>
     </div>

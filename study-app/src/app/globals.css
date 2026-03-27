@@ -123,3 +123,41 @@ body {
 ::selection {
   background: rgba(59, 130, 246, 0.3);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   JARVIS — KaTeX & Prose Overrides
+   ═══════════════════════════════════════════════════════════════ */
+
+/* KaTeX dark theme */
+.jarvis-prose .katex {
+  color: var(--fg-primary);
+  font-size: 1em;
+}
+
+.jarvis-prose .katex-display {
+  margin: 1rem 0;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-default);
+  overflow-x: auto;
+}
+
+.jarvis-prose .katex-display > .katex {
+  color: var(--accent-primary);
+}
+
+/* Inline KaTeX */
+.jarvis-prose .katex:not(.katex-display .katex) {
+  padding: 0 2px;
+}
+
+/* Ensure SVG within rendered content respects dark theme */
+.jarvis-prose svg text {
+  fill: var(--fg-primary);
+}
+
+.jarvis-prose svg line,
+.jarvis-prose svg path {
+  stroke: var(--fg-secondary);
+}

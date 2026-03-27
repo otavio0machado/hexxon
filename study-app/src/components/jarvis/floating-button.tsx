@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Bot, X } from 'lucide-react'
 import { JarvisChat } from './chat'
+import type { ConversationRow } from '@/lib/services/conversations'
 
 interface FloatingButtonProps {
   currentPage?: string
@@ -17,6 +18,11 @@ export function FloatingButton({
 }: FloatingButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
+  const [floatingConvId, setFloatingConvId] = useState<string | null>(null)
+
+  const handleConversationCreated = useCallback((conv: ConversationRow) => {
+    setFloatingConvId(conv.id)
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -113,6 +119,8 @@ export function FloatingButton({
               currentPage={currentPage}
               disciplineId={disciplineId}
               topicId={topicId}
+              conversationId={floatingConvId}
+              onConversationCreated={handleConversationCreated}
             />
           </div>
         </div>

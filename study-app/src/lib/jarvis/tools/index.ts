@@ -32,8 +32,8 @@ const tools: ToolDefinition[] = [
       topic_id: { type: 'string', description: 'ID of the topic this note belongs to' },
       discipline_id: { type: 'string', description: 'ID of the discipline' },
       format: { type: 'string', description: 'Note format', enum: ['cornell', 'outline', 'concept_map', 'summary', 'free'] },
-      key_concepts: { type: 'array', description: 'Key concepts covered in this note' },
-      tags: { type: 'array', description: 'Tags for this note' },
+      key_concepts: { type: 'array', description: 'Key concepts covered in this note', items: { type: 'string' } },
+      tags: { type: 'array', description: 'Tags for this note', items: { type: 'string' } },
     },
     required: ['title', 'content', 'topic_id', 'discipline_id'],
     execute: async (params) => {
@@ -126,7 +126,7 @@ const tools: ToolDefinition[] = [
     parameters: {
       topic_id: { type: 'string', description: 'Topic ID' },
       discipline_id: { type: 'string', description: 'Discipline ID' },
-      cards: { type: 'array', description: 'Array of {front, back, type, difficulty} objects' },
+      cards: { type: 'array', description: 'Array of {front, back, type, difficulty} objects', items: { type: 'object', properties: { front: { type: 'string', description: 'Front of the card' }, back: { type: 'string', description: 'Back of the card' }, type: { type: 'string', description: 'Card type' }, difficulty: { type: 'number', description: 'Difficulty 1-5' } }, required: ['front', 'back'] } },
     },
     required: ['topic_id', 'discipline_id', 'cards'],
     execute: async (params) => {
@@ -279,8 +279,8 @@ const tools: ToolDefinition[] = [
       type: { type: 'string', description: 'Type', enum: ['multiple_choice', 'open_ended', 'proof', 'computation'] },
       difficulty: { type: 'number', description: 'Difficulty 1-5' },
       solution: { type: 'string', description: 'Full solution' },
-      hints: { type: 'array', description: 'Progressive hints' },
-      concepts_tested: { type: 'array', description: 'Concepts tested' },
+      hints: { type: 'array', description: 'Progressive hints', items: { type: 'string' } },
+      concepts_tested: { type: 'array', description: 'Concepts tested', items: { type: 'string' } },
     },
     required: ['topic_id', 'discipline_id', 'statement', 'type', 'difficulty', 'solution'],
     execute: async (params) => {
@@ -473,7 +473,7 @@ const tools: ToolDefinition[] = [
     parameters: {
       type: { type: 'string', description: 'Type of diagram', enum: ['concept_map', 'flowchart', 'graph', 'timeline', 'comparison'] },
       title: { type: 'string', description: 'Title of the diagram' },
-      elements: { type: 'array', description: 'Array of {label, connections[]} for concept maps, or {x, y, label} for graphs' },
+      elements: { type: 'array', description: 'Array of {label, connections[]} for concept maps, or {x, y, label} for graphs', items: { type: 'object', properties: { label: { type: 'string', description: 'Element label' }, connections: { type: 'array', description: 'Connected elements', items: { type: 'string' } }, x: { type: 'number', description: 'X coordinate' }, y: { type: 'number', description: 'Y coordinate' } }, required: ['label'] } },
       description: { type: 'string', description: 'Description for the AI to generate from' },
     },
     required: ['type', 'title'],
@@ -523,6 +523,7 @@ export function toProviderTools(): ProviderTool[] {
             type: param.type,
             description: param.description,
             ...(param.enum ? { enum: param.enum } : {}),
+            ...(param.items ? { items: param.items } : {}),
           },
         ])
       ),

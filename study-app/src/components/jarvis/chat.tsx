@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import {
   Send,
   Bot,
@@ -19,15 +19,33 @@ import {
   X,
   Plus,
   Cpu,
+  Copy,
+  Check,
 } from 'lucide-react'
 import type { JarvisMessage, ModelId, ModelInfo, PostAction, ToolResult, MixSource } from '@/lib/jarvis/types'
 import { MODELS } from '@/lib/jarvis/types'
+import {
+  createConversation,
+  getMessages,
+  saveMessage,
+  updateConversation,
+  generateTitle,
+  type ConversationRow,
+} from '@/lib/services/conversations'
+import ReactMarkdown from 'react-markdown'
+import remarkMath from 'remark-math'
+import remarkGfm from 'remark-gfm'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
 
 interface JarvisChatProps {
   mode: 'floating' | 'fullpage'
   currentPage?: string
   disciplineId?: string
   topicId?: string
+  conversationId?: string | null
+  onConversationCreated?: (conv: ConversationRow) => void
+  onConversationUpdated?: (id: string, title: string) => void
 }
 
 const SUGGESTIONS = [
@@ -39,11 +57,188 @@ const SUGGESTIONS = [
   { icon: Layers, text: 'Resuma o tópico de lógica proposicional' },
 ]
 
+// ── Rich Markdown Renderer (react-markdown + KaTeX) ─────────
+
+import ReactMarkdown from 'react-markdown'
+import remarkMath from 'remark-math'
+import remarkGfm from 'remark-gfm'
+import rehypeKatex from 'rehype-katex'
+import 'katex/dist/katex.min.css'
+
+function MessageContent({ content }: { content: string }) {
+  // Extract SVG blocks before markdown processing
+  const segments = useMemo(() => {
+    const parts: { type: 'md' | 'svg'; content: string }[] = []
+    const svgRegex = /(<svg[\s\S]*?<\/svg>)/gi
+    let lastIndex = 0
+    let match: RegExpExecArray | null
+
+    while ((match = svgRegex.exec(content)) !== null) {
+      if (match.index > lastIndex) {
+        parts.push({ type: 'md', content: content.slice(lastIndex, match.index) })
+      }
+      parts.push({ type: 'svg', content: match[1] })
+      lastIndex = match.index + match[0].length
+    }
+    if (lastIndex < content.length) {
+      parts.push({ type: 'md', content: content.slice(lastIndex) })
+    }
+    return parts
+  }, [content])
+
+  return (
+    <div className="jarvis-prose text-sm text-fg-primary leading-relaxed">
+      {segments.map((seg, i) =>
+        seg.type === 'svg' ? (
+          <div
+            key={i}
+            className="my-4 rounded-lg overflow-hidden border border-border-default bg-bg-secondary p-3 flex justify-center"
+            dangerouslySetInnerHTML={{ __html: seg.content }}
+          />
+        ) : (
+          <ReactMarkdown
+            key={i}
+            remarkPlugins={[remarkMath, remarkGfm]}
+            rehypePlugins={[rehypeKatex]}
+            components={{
+              // Headings
+              h1: ({ children }) => (
+                <h2 className="text-xl font-bold text-fg-primary mt-6 mb-3">{children}</h2>
+              ),
+              h2: ({ children }) => (
+                <h3 className="text-lg font-semibold text-fg-primary mt-5 mb-2">{children}</h3>
+              ),
+              h3: ({ children }) => (
+                <h4 className="text-base font-semibold text-fg-primary mt-4 mb-2">{children}</h4>
+              ),
+              h4: ({ children }) => (
+                <h5 className="text-sm font-semibold text-fg-secondary mt-3 mb-1">{children}</h5>
+              ),
+              // Paragraphs
+              p: ({ children }) => (
+                <p className="text-sm text-fg-primary leading-relaxed mb-3 last:mb-0">{children}</p>
+              ),
+              // Strong / Em
+              strong: ({ children }) => (
+                <strong className="font-semibold text-fg-primary">{children}</strong>
+              ),
+              em: ({ children }) => (
+                <em className="italic text-fg-secondary">{children}</em>
+              ),
+              // Code blocks
+              pre: ({ children }) => <>{children}</>,
+              code: ({ className, children, ...props }) => {
+                const codeString = String(children).replace(/\n$/, '')
+                const langMatch = className?.match(/language-(\w+)/)
+                const isBlock = className?.startsWith('language-') || codeString.includes('\n')
+
+                if (isBlock) {
+                  const lang = langMatch?.[1] || ''
+                  // Render SVG code blocks as actual SVG
+                  if (lang === 'svg' || (lang === '' && codeString.trimStart().startsWith('<svg'))) {
+                    return (
+                      <div
+                        className="my-4 rounded-lg overflow-hidden border border-border-default bg-bg-secondary p-3 flex justify-center"
+                        dangerouslySetInnerHTML={{ __html: codeString }}
+                      />
+                    )
+                  }
+                  return <CodeBlock lang={lang} code={codeString} />
+                }
+                return (
+                  <code className="bg-bg-tertiary text-accent-primary px-1.5 py-0.5 rounded text-xs font-mono" {...props}>
+                    {children}
+                  </code>
+                )
+              },
+              // Links
+              a: ({ href, children }) => (
+                <a href={href} target="_blank" rel="noopener noreferrer" className="text-accent-primary hover:underline">
+                  {children}
+                </a>
+              ),
+              // Lists
+              ul: ({ children }) => (
+                <ul className="list-disc pl-6 space-y-1.5 my-3 text-fg-primary">{children}</ul>
+              ),
+              ol: ({ children }) => (
+                <ol className="list-decimal pl-6 space-y-1.5 my-3 text-fg-primary">{children}</ol>
+              ),
+              li: ({ children }) => (
+                <li className="text-sm leading-relaxed">{children}</li>
+              ),
+              // Blockquotes
+              blockquote: ({ children }) => (
+                <blockquote className="border-l-3 border-accent-primary pl-4 py-1 my-3 text-fg-secondary bg-bg-secondary/50 rounded-r-lg">
+                  {children}
+                </blockquote>
+              ),
+              // Horizontal rules
+              hr: () => <hr className="border-border-default my-5" />,
+              // Tables
+              table: ({ children }) => (
+                <div className="my-4 overflow-x-auto rounded-lg border border-border-default">
+                  <table className="w-full text-sm">{children}</table>
+                </div>
+              ),
+              thead: ({ children }) => (
+                <thead className="bg-bg-tertiary">{children}</thead>
+              ),
+              tbody: ({ children }) => <tbody>{children}</tbody>,
+              tr: ({ children }) => (
+                <tr className="border-b border-border-default last:border-0 hover:bg-bg-secondary/30 transition-colors">{children}</tr>
+              ),
+              th: ({ children }) => (
+                <th className="px-4 py-2.5 text-left text-xs font-semibold text-fg-secondary uppercase tracking-wider">{children}</th>
+              ),
+              td: ({ children }) => (
+                <td className="px-4 py-2.5 text-fg-primary">{children}</td>
+              ),
+            }}
+          >
+            {seg.content}
+          </ReactMarkdown>
+        )
+      )}
+    </div>
+  )
+}
+
+function CodeBlock({ lang, code }: { lang: string; code: string }) {
+  const [copied, setCopied] = useState(false)
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="my-3 rounded-lg overflow-hidden border border-border-default">
+      <div className="flex items-center justify-between px-4 py-2 bg-bg-tertiary text-xs text-fg-tertiary">
+        <span className="font-medium">{lang || 'code'}</span>
+        <button onClick={handleCopy} className="flex items-center gap-1.5 hover:text-fg-secondary transition-colors">
+          {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+          {copied ? 'Copiado' : 'Copiar'}
+        </button>
+      </div>
+      <pre className="px-4 py-3 bg-bg-secondary overflow-x-auto text-xs font-mono text-fg-secondary leading-relaxed">
+        <code>{code}</code>
+      </pre>
+    </div>
+  )
+}
+
+// ── Main Chat Component ──────────────────────────────────────
+
 export function JarvisChat({
   mode,
   currentPage,
   disciplineId,
   topicId,
+  conversationId: externalConversationId,
+  onConversationCreated,
+  onConversationUpdated,
 }: JarvisChatProps) {
   const [messages, setMessages] = useState<JarvisMessage[]>([])
   const [currentModel, setCurrentModel] = useState<ModelId>('claude-sonnet-4-6')
@@ -53,7 +248,38 @@ export function JarvisChat({
   const [expandedModelDropdown, setExpandedModelDropdown] = useState(false)
   const [expandedToolResults, setExpandedToolResults] = useState<Set<string>>(new Set())
   const [expandedMixSources, setExpandedMixSources] = useState<Set<string>>(new Set())
+  const [activeConvId, setActiveConvId] = useState<string | null>(externalConversationId ?? null)
+  const [loadingHistory, setLoadingHistory] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  // Sync external conversationId changes
+  useEffect(() => {
+    if (externalConversationId !== undefined) {
+      setActiveConvId(externalConversationId)
+    }
+  }, [externalConversationId])
+
+  // Load messages when conversation changes
+  useEffect(() => {
+    if (!activeConvId) {
+      setMessages([])
+      return
+    }
+    let cancelled = false
+    setLoadingHistory(true)
+    getMessages(activeConvId)
+      .then((msgs) => {
+        if (!cancelled) setMessages(msgs)
+      })
+      .catch(() => {
+        // silently fail — conversation may have been deleted
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingHistory(false)
+      })
+    return () => { cancelled = true }
+  }, [activeConvId])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -61,13 +287,29 @@ export function JarvisChat({
 
   useEffect(() => {
     scrollToBottom()
-  }, [messages])
+  }, [messages, isLoading])
+
+  // Ensure a conversation exists, creating one if needed
+  const ensureConversation = useCallback(async (firstMessageContent: string): Promise<string> => {
+    if (activeConvId) return activeConvId
+
+    const conv = await createConversation({
+      title: generateTitle(firstMessageContent),
+      model: currentModel,
+      currentPage: currentPage ?? undefined,
+      disciplineId: disciplineId ?? undefined,
+      topicId: topicId ?? undefined,
+    })
+    setActiveConvId(conv.id)
+    onConversationCreated?.(conv)
+    return conv.id
+  }, [activeConvId, currentModel, currentPage, disciplineId, topicId, onConversationCreated])
 
   const sendMessage = async (content: string) => {
     if (!content.trim()) return
 
     const userMsg: JarvisMessage = {
-      id: `user_${Date.now()}`,
+      id: `user_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       role: 'user',
       content,
       timestamp: Date.now(),
@@ -79,6 +321,19 @@ export function JarvisChat({
     setError(null)
 
     try {
+      // Ensure we have a conversation in Supabase
+      const convId = await ensureConversation(content)
+
+      // Save user message
+      await saveMessage(convId, userMsg).catch(() => {})
+
+      // If this is the first user message and we auto-titled, update the title
+      if (messages.length === 0) {
+        const title = generateTitle(content)
+        await updateConversation(convId, { title }).catch(() => {})
+        onConversationUpdated?.(convId, title)
+      }
+
       const res = await fetch('/api/jarvis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -97,27 +352,35 @@ export function JarvisChat({
       }
 
       const data = await res.json()
-      setMessages((prev) => [...prev, data.message])
+      const assistantMsg: JarvisMessage = data.message
+
+      setMessages((prev) => [...prev, assistantMsg])
+
+      // Save assistant message to Supabase
+      await saveMessage(convId, assistantMsg).catch(() => {})
+
+      // Update cost on conversation
+      if (assistantMsg.meta?.estimatedCostUsd) {
+        await updateConversation(convId, {
+          total_cost_usd: assistantMsg.meta.estimatedCostUsd,
+        }).catch(() => {})
+      }
     } catch (err) {
       setError((err as Error).message)
     } finally {
       setIsLoading(false)
+      inputRef.current?.focus()
     }
   }
 
   const handleExecuteAction = async (action: PostAction) => {
-    const actionMessage = `Execute: ${action.id} with params ${JSON.stringify(action.params)}`
-    await sendMessage(actionMessage)
+    await sendMessage(action.label)
   }
 
   const toggleToolResult = (toolId: string) => {
     setExpandedToolResults((prev) => {
       const next = new Set(prev)
-      if (next.has(toolId)) {
-        next.delete(toolId)
-      } else {
-        next.add(toolId)
-      }
+      next.has(toolId) ? next.delete(toolId) : next.add(toolId)
       return next
     })
   }
@@ -125,88 +388,9 @@ export function JarvisChat({
   const toggleMixSources = (messageId: string) => {
     setExpandedMixSources((prev) => {
       const next = new Set(prev)
-      if (next.has(messageId)) {
-        next.delete(messageId)
-      } else {
-        next.add(messageId)
-      }
+      next.has(messageId) ? next.delete(messageId) : next.add(messageId)
       return next
     })
-  }
-
-  const renderMarkdown = (text: string) => {
-    const parts = []
-    let lastIndex = 0
-
-    const patterns = [
-      { regex: /\*\*(.*?)\*\*/g, tag: 'strong' },
-      { regex: /`(.*?)`/g, tag: 'code' },
-      { regex: /\[(.*?)\]\((.*?)\)/g, tag: 'link' },
-    ]
-
-    let match
-    const allMatches: Array<{
-      start: number
-      end: number
-      type: string
-      groups: string[]
-    }> = []
-
-    patterns.forEach(({ regex, tag }) => {
-      while ((match = regex.exec(text)) !== null) {
-        allMatches.push({
-          start: match.index,
-          end: match.index + match[0].length,
-          type: tag,
-          groups: Array.from(match).slice(1),
-        })
-      }
-    })
-
-    allMatches.sort((a, b) => a.start - b.start)
-
-    allMatches.forEach((match) => {
-      if (match.start > lastIndex) {
-        parts.push(text.slice(lastIndex, match.start))
-      }
-
-      if (match.type === 'strong') {
-        parts.push(
-          <strong key={`${match.start}_strong`} className="font-semibold text-text-fg-primary">
-            {match.groups[0]}
-          </strong>
-        )
-      } else if (match.type === 'code') {
-        parts.push(
-          <code
-            key={`${match.start}_code`}
-            className="bg-bg-tertiary text-accent-primary px-2 py-1 rounded text-sm font-mono"
-          >
-            {match.groups[0]}
-          </code>
-        )
-      } else if (match.type === 'link') {
-        parts.push(
-          <a
-            key={`${match.start}_link`}
-            href={match.groups[1]}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-accent-primary hover:underline"
-          >
-            {match.groups[0]}
-          </a>
-        )
-      }
-
-      lastIndex = match.end
-    })
-
-    if (lastIndex < text.length) {
-      parts.push(text.slice(lastIndex))
-    }
-
-    return parts
   }
 
   const modelsList = Object.values(MODELS)
@@ -221,92 +405,56 @@ export function JarvisChat({
   )
 
   const currentModelData = MODELS[currentModel]
+  const providerLabels: Record<string, string> = { anthropic: 'Anthropic', google: 'Google', mix: 'Mix' }
 
   return (
-    <div
-      className={`flex flex-col h-full ${
-        mode === 'floating' ? 'bg-bg-primary' : 'bg-bg-primary'
-      } border border-border-default rounded-lg overflow-hidden`}
-    >
-      {/* Header */}
-      {mode === 'fullpage' && (
-        <div className="px-4 py-3 border-b border-border-default flex items-center justify-between bg-bg-secondary">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-accent-primary" />
-            <h1 className="text-lg font-semibold text-text-fg-primary">JARVIS</h1>
-          </div>
-          {currentModelData && (
-            <div className="flex items-center gap-2 text-sm text-text-fg-secondary">
-              <Cpu className="w-4 h-4" />
-              <span>{currentModelData.name}</span>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Model Selector */}
-      <div className="px-4 py-2 border-b border-border-default bg-bg-secondary">
-        <div className="relative">
+    <div className="flex flex-col h-full bg-bg-primary border border-border-default rounded-lg overflow-hidden">
+      {/* Model Selector Bar */}
+      <div className="px-3 py-2 border-b border-border-default bg-bg-secondary flex items-center gap-2">
+        <Bot className="w-4 h-4 text-accent-primary flex-shrink-0" />
+        <div className="relative flex-1">
           <button
             onClick={() => setExpandedModelDropdown(!expandedModelDropdown)}
-            className="w-full flex items-center justify-between px-3 py-2 rounded bg-bg-tertiary hover:bg-bg-surface transition-colors text-text-fg-primary text-sm"
+            className="flex items-center gap-2 px-2 py-1 rounded bg-bg-tertiary hover:bg-bg-surface transition-colors text-fg-primary text-xs"
           >
-            <span className="flex items-center gap-2">
-              <Cpu className="w-4 h-4" />
-              {currentModelData?.name || 'Selecionar modelo'}
-            </span>
-            {expandedModelDropdown ? (
-              <ChevronUp className="w-4 h-4" />
-            ) : (
-              <ChevronDown className="w-4 h-4" />
-            )}
+            <span>{currentModelData?.name || 'Modelo'}</span>
+            <ChevronDown className="w-3 h-3 text-fg-tertiary" />
           </button>
 
           {expandedModelDropdown && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-bg-secondary border border-border-default rounded shadow-lg z-10 max-h-60 overflow-y-auto">
-              {/* Mix option */}
+            <div className="absolute top-full left-0 mt-1 w-64 bg-bg-secondary border border-border-default rounded-lg shadow-xl z-50 overflow-hidden">
+              {/* Mix */}
               <button
-                onClick={() => {
-                  setCurrentModel('mix')
-                  setExpandedModelDropdown(false)
-                }}
-                className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                  currentModel === 'mix'
-                    ? 'bg-accent-primary text-bg-primary font-semibold'
-                    : 'text-text-fg-primary hover:bg-bg-tertiary'
+                onClick={() => { setCurrentModel('mix'); setExpandedModelDropdown(false) }}
+                className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors ${
+                  currentModel === 'mix' ? 'bg-blue-500/20 text-blue-400' : 'text-fg-primary hover:bg-bg-tertiary'
                 }`}
               >
-                <Layers className="w-4 h-4 inline mr-2" />
-                Mix (múltiplos modelos)
+                <Sparkles className="w-3.5 h-3.5" />
+                <span className="font-medium">Mix (Multi-IA)</span>
+                <span className="ml-auto text-fg-muted">Combina respostas</span>
               </button>
+              <div className="h-px bg-border-default" />
 
-              {/* Grouped models */}
-              {Object.entries(groupedModels).map(([provider, models]) => (
+              {Object.entries(groupedModels).filter(([p]) => p !== 'mix').map(([provider, models]) => (
                 <div key={provider}>
-                  <div className="px-3 py-2 text-xs font-semibold text-text-fg-tertiary bg-bg-tertiary">
-                    {provider}
+                  <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-fg-muted bg-bg-tertiary/50">
+                    {providerLabels[provider] || provider}
                   </div>
                   {models.map((model) => (
                     <button
                       key={model.id}
-                      onClick={() => {
-                        setCurrentModel(model.id)
-                        setExpandedModelDropdown(false)
-                      }}
-                      className={`w-full text-left px-3 py-2 text-sm transition-colors ${
-                        currentModel === model.id
-                          ? 'bg-accent-primary text-bg-primary'
-                          : 'text-text-fg-primary hover:bg-bg-tertiary'
+                      onClick={() => { setCurrentModel(model.id); setExpandedModelDropdown(false) }}
+                      className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors ${
+                        currentModel === model.id ? 'bg-blue-500/20 text-blue-400' : 'text-fg-primary hover:bg-bg-tertiary'
                       }`}
                     >
-                      <div className="flex items-center justify-between">
-                        <span>{model.name}</span>
-                        <span className="text-xs text-text-fg-tertiary">
-                          {model.tier === 'fast' && '⚡'}
-                          {model.tier === 'balanced' && '⚖️'}
-                          {model.tier === 'powerful' && '🔥'}
-                        </span>
-                      </div>
+                      <span className="flex-1">{model.name}</span>
+                      <span className="text-fg-muted">
+                        {model.tier === 'fast' && '⚡ Rápido'}
+                        {model.tier === 'balanced' && '⚖️ Balanceado'}
+                        {model.tier === 'powerful' && '🔥 Poderoso'}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -314,30 +462,45 @@ export function JarvisChat({
             </div>
           )}
         </div>
+
+        {currentModelData && (
+          <span className="text-[10px] text-fg-muted">
+            {currentModelData.tier === 'fast' && '⚡'}
+            {currentModelData.tier === 'balanced' && '⚖️'}
+            {currentModelData.tier === 'powerful' && '🔥'}
+          </span>
+        )}
       </div>
 
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-        {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center">
-            <Bot className="w-12 h-12 text-text-fg-tertiary mb-4" />
-            <h2 className="text-lg font-semibold text-text-fg-primary mb-2">
-              Bem-vindo ao JARVIS
-            </h2>
-            <p className="text-sm text-text-fg-secondary mb-6 max-w-xs">
-              Seu assistente de estudo com IA. Pergunte qualquer coisa sobre seus tópicos de estudo.
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+        {loadingHistory ? (
+          <div className="h-full flex items-center justify-center">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+            <span className="ml-2 text-sm text-fg-tertiary">Carregando conversa...</span>
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center px-4">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center mb-4">
+              <Bot className="w-7 h-7 text-blue-400" />
+            </div>
+            <h2 className="text-base font-semibold text-fg-primary mb-1">JARVIS</h2>
+            <p className="text-xs text-fg-tertiary mb-6 max-w-xs">
+              Copiloto de estudo. Pergunte, crie conteúdo, gere exercícios.
             </p>
-            <div className="grid grid-cols-2 gap-3 w-full max-w-2xl">
-              {SUGGESTIONS.map((sugg, idx) => {
+            <div className={`grid gap-2 w-full ${mode === 'floating' ? 'grid-cols-1' : 'grid-cols-2 max-w-lg'}`}>
+              {SUGGESTIONS.slice(0, mode === 'floating' ? 4 : 6).map((sugg, idx) => {
                 const Icon = sugg.icon
                 return (
                   <button
                     key={idx}
                     onClick={() => sendMessage(sugg.text)}
-                    className="text-left p-3 rounded bg-bg-secondary hover:bg-bg-tertiary transition-colors border border-border-default"
+                    className="text-left p-3 rounded-lg bg-bg-secondary hover:bg-bg-tertiary transition-colors border border-border-default group"
                   >
-                    <Icon className="w-4 h-4 text-accent-primary mb-2" />
-                    <p className="text-xs text-text-fg-secondary line-clamp-2">{sugg.text}</p>
+                    <div className="flex items-start gap-2">
+                      <Icon className="w-4 h-4 text-fg-muted group-hover:text-accent-primary transition-colors flex-shrink-0 mt-0.5" />
+                      <p className="text-xs text-fg-secondary group-hover:text-fg-primary transition-colors">{sugg.text}</p>
+                    </div>
                   </button>
                 )
               })}
@@ -346,42 +509,43 @@ export function JarvisChat({
         ) : (
           <>
             {messages.map((msg) => (
-              <div key={msg.id} className="flex gap-3 animate-in">
+              <div key={msg.id} className="group">
                 {msg.role === 'user' ? (
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-accent-primary flex items-center justify-center">
-                    <User className="w-4 h-4 text-bg-primary" />
+                  /* User message */
+                  <div className="flex gap-3 justify-end">
+                    <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-sm bg-blue-500/15 border border-blue-500/20">
+                      <p className="text-sm text-fg-primary">{msg.content}</p>
+                    </div>
                   </div>
                 ) : (
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-bg-tertiary flex items-center justify-center">
-                    <Bot className="w-4 h-4 text-accent-primary" />
-                  </div>
-                )}
+                  /* Assistant message */
+                  <div className="flex gap-3">
+                    <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-bg-tertiary flex items-center justify-center mt-0.5">
+                      <Bot className="w-3.5 h-3.5 text-blue-400" />
+                    </div>
 
-                <div className="flex-1">
-                  {msg.role === 'assistant' ? (
-                    <div className="space-y-3">
-                      <div className="text-sm text-text-fg-primary leading-relaxed">
-                        {renderMarkdown(msg.content)}
-                      </div>
+                    <div className="flex-1 min-w-0">
+                      {/* Rendered content */}
+                      <MessageContent content={msg.content} />
 
-                      {/* Cost/Model/Duration Badge */}
+                      {/* Meta badges */}
                       {msg.meta && (
-                        <div className="flex flex-wrap gap-2 text-xs text-fg-secondary pt-2">
+                        <div className="flex flex-wrap gap-1.5 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
                           {msg.meta.model && (
-                            <span className="flex items-center gap-1 px-2 py-1 bg-bg-tertiary rounded">
-                              <Cpu className="w-3 h-3" />
+                            <span className="flex items-center gap-1 px-2 py-0.5 bg-bg-tertiary rounded text-[10px] text-fg-muted">
+                              <Cpu className="w-2.5 h-2.5" />
                               {msg.meta.model}
                             </span>
                           )}
-                          {msg.meta.durationMs && (
-                            <span className="flex items-center gap-1 px-2 py-1 bg-bg-tertiary rounded">
-                              <Clock className="w-3 h-3" />
-                              {msg.meta.durationMs}ms
+                          {msg.meta.durationMs != null && (
+                            <span className="flex items-center gap-1 px-2 py-0.5 bg-bg-tertiary rounded text-[10px] text-fg-muted">
+                              <Clock className="w-2.5 h-2.5" />
+                              {(msg.meta.durationMs / 1000).toFixed(1)}s
                             </span>
                           )}
-                          {msg.meta.estimatedCostUsd != null && (
-                            <span className="flex items-center gap-1 px-2 py-1 bg-bg-tertiary rounded">
-                              <DollarSign className="w-3 h-3" />
+                          {msg.meta.estimatedCostUsd != null && msg.meta.estimatedCostUsd > 0 && (
+                            <span className="flex items-center gap-1 px-2 py-0.5 bg-bg-tertiary rounded text-[10px] text-fg-muted">
+                              <DollarSign className="w-2.5 h-2.5" />
                               ${msg.meta.estimatedCostUsd.toFixed(4)}
                             </span>
                           )}
@@ -390,28 +554,24 @@ export function JarvisChat({
 
                       {/* Tool Results */}
                       {msg.toolResults && msg.toolResults.length > 0 && (
-                        <div className="space-y-2 pt-2">
+                        <div className="space-y-1.5 mt-3">
                           {msg.toolResults.map((tool) => (
-                            <div
-                              key={tool.toolCallId}
-                              className="border border-border-default rounded bg-bg-surface overflow-hidden"
-                            >
+                            <div key={tool.toolCallId} className="rounded-lg overflow-hidden border border-border-default bg-bg-secondary">
                               <button
                                 onClick={() => toggleToolResult(tool.toolCallId)}
-                                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-bg-tertiary transition-colors text-sm text-text-fg-secondary"
+                                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-bg-tertiary transition-colors text-xs"
                               >
-                                {expandedToolResults.has(tool.toolCallId) ? (
-                                  <ChevronUp className="w-4 h-4" />
-                                ) : (
-                                  <ChevronDown className="w-4 h-4" />
-                                )}
-                                <Zap className="w-4 h-4 text-accent-primary" />
-                                <span>{tool.message}</span>
+                                <div className={`w-1.5 h-1.5 rounded-full ${tool.success ? 'bg-green-500' : 'bg-red-500'}`} />
+                                <Zap className="w-3 h-3 text-fg-muted" />
+                                <span className="text-fg-secondary flex-1 text-left">{tool.message}</span>
+                                {expandedToolResults.has(tool.toolCallId)
+                                  ? <ChevronUp className="w-3 h-3 text-fg-muted" />
+                                  : <ChevronDown className="w-3 h-3 text-fg-muted" />}
                               </button>
-                              {expandedToolResults.has(tool.toolCallId) && (
-                                <div className="px-3 py-2 border-t border-border-default text-xs text-fg-secondary bg-bg-secondary">
-                                  <pre className="whitespace-pre-wrap break-words font-mono">
-                                    {JSON.stringify(tool.data, null, 2)}
+                              {expandedToolResults.has(tool.toolCallId) && tool.data != null && (
+                                <div className="px-3 py-2 border-t border-border-default text-[11px] text-fg-tertiary bg-bg-primary">
+                                  <pre className="whitespace-pre-wrap break-words font-mono max-h-40 overflow-y-auto">
+                                    {JSON.stringify(tool.data as Record<string, unknown>, null, 2)}
                                   </pre>
                                 </div>
                               )}
@@ -422,12 +582,18 @@ export function JarvisChat({
 
                       {/* Post-Action Buttons */}
                       {msg.postActions && msg.postActions.length > 0 && (
-                        <div className="flex flex-wrap gap-2 pt-2">
+                        <div className="flex flex-wrap gap-2 mt-3">
                           {msg.postActions.map((action) => (
                             <button
                               key={action.id}
                               onClick={() => handleExecuteAction(action)}
-                              className="text-xs px-3 py-1 rounded bg-accent-primary text-bg-primary hover:opacity-90 transition-opacity font-medium"
+                              className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                                action.variant === 'primary'
+                                  ? 'bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/20'
+                                  : action.variant === 'secondary'
+                                    ? 'bg-bg-tertiary text-fg-secondary hover:text-fg-primary border border-border-default'
+                                    : 'text-fg-tertiary hover:text-fg-secondary hover:bg-bg-tertiary'
+                              }`}
                             >
                               {action.label}
                             </button>
@@ -437,25 +603,24 @@ export function JarvisChat({
 
                       {/* Mix Sources */}
                       {msg.mixSources && msg.mixSources.length > 0 && (
-                        <div className="pt-2">
+                        <div className="mt-3">
                           <button
                             onClick={() => toggleMixSources(msg.id)}
-                            className="text-xs text-accent-primary hover:text-accent-primary/80 transition-colors flex items-center gap-1"
+                            className="text-[11px] text-fg-muted hover:text-fg-tertiary transition-colors flex items-center gap-1"
                           >
-                            {expandedMixSources.has(msg.id) ? (
-                              <ChevronUp className="w-3 h-3" />
-                            ) : (
-                              <ChevronDown className="w-3 h-3" />
-                            )}
-                            Ver contribuições dos modelos
+                            {expandedMixSources.has(msg.id) ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                            <Layers className="w-3 h-3" />
+                            {msg.mixSources.length} modelos contribuíram
                           </button>
                           {expandedMixSources.has(msg.id) && (
-                            <div className="mt-2 space-y-1 text-xs text-text-fg-secondary">
+                            <div className="mt-2 space-y-2">
                               {msg.mixSources.map((source) => (
-                                <div key={source.model} className="pl-3 border-l border-accent-primary">
-                                  <p className="font-semibold text-accent-primary">{MODELS[source.model]?.name ?? source.model}</p>
-                                  <p className="text-fg-tertiary">{source.content.slice(0, 120)}...</p>
-                                  <p className="text-fg-muted">{source.durationMs}ms · {source.tokensUsed} tokens</p>
+                                <div key={source.model} className="pl-3 border-l-2 border-blue-500/30 text-xs">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <span className="font-medium text-blue-400">{MODELS[source.model]?.name ?? source.model}</span>
+                                    <span className="text-fg-muted">{(source.durationMs / 1000).toFixed(1)}s · {source.tokensUsed} tokens</span>
+                                  </div>
+                                  <p className="text-fg-tertiary line-clamp-2">{source.content.slice(0, 200)}</p>
                                 </div>
                               ))}
                             </div>
@@ -463,38 +628,29 @@ export function JarvisChat({
                         </div>
                       )}
                     </div>
-                  ) : (
-                    <div className="text-sm text-text-fg-primary">{msg.content}</div>
-                  )}
-                </div>
+                  </div>
+                )}
               </div>
             ))}
 
             {isLoading && (
               <div className="flex gap-3">
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-bg-tertiary flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-accent-primary" />
+                <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-bg-tertiary flex items-center justify-center">
+                  <Bot className="w-3.5 h-3.5 text-blue-400" />
                 </div>
-                <div className="flex items-center gap-1 text-text-fg-secondary">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm">Processando</span>
-                  <span className="animate-pulse">.</span>
-                  <span className="animate-pulse" style={{ animationDelay: '0.1s' }}>
-                    .
-                  </span>
-                  <span className="animate-pulse" style={{ animationDelay: '0.2s' }}>
-                    .
-                  </span>
+                <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-bg-secondary border border-border-default">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
+                  <span className="text-xs text-fg-tertiary">Pensando...</span>
                 </div>
               </div>
             )}
 
             {error && (
-              <div className="flex gap-3 p-3 rounded bg-accent-danger/10 border border-accent-danger/30">
-                <X className="w-5 h-5 text-accent-danger flex-shrink-0" />
+              <div className="flex gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                <X className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-sm font-semibold text-accent-danger">Erro</p>
-                  <p className="text-sm text-text-fg-secondary">{error}</p>
+                  <p className="text-xs font-medium text-red-400">Erro</p>
+                  <p className="text-xs text-fg-tertiary mt-0.5">{error}</p>
                 </div>
               </div>
             )}
@@ -505,9 +661,10 @@ export function JarvisChat({
       </div>
 
       {/* Input Area */}
-      <div className="px-4 py-3 border-t border-border-default bg-bg-secondary">
-        <div className="flex gap-2">
+      <div className="px-3 py-3 border-t border-border-default bg-bg-secondary">
+        <div className="flex gap-2 items-end">
           <textarea
+            ref={inputRef}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => {
@@ -516,16 +673,16 @@ export function JarvisChat({
                 sendMessage(inputValue)
               }
             }}
-            placeholder="Digite sua pergunta... (Shift+Enter para nova linha)"
-            className="flex-1 px-3 py-2 rounded bg-bg-tertiary text-text-fg-primary placeholder-text-fg-tertiary text-sm resize-none focus:outline-none focus:ring-2 focus:ring-accent-primary max-h-24"
+            placeholder="Pergunte algo..."
+            className="flex-1 px-3 py-2 rounded-lg bg-bg-tertiary text-fg-primary placeholder-fg-muted text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-500/50 min-h-[40px] max-h-32"
             rows={1}
           />
           <button
             onClick={() => sendMessage(inputValue)}
             disabled={!inputValue.trim() || isLoading}
-            className="flex-shrink-0 w-10 h-10 rounded bg-accent-primary hover:bg-accent-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+            className="flex-shrink-0 w-9 h-9 rounded-lg bg-blue-500 hover:bg-blue-600 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
           >
-            <Send className="w-5 h-5 text-bg-primary" />
+            <Send className="w-4 h-4 text-white" />
           </button>
         </div>
       </div>
