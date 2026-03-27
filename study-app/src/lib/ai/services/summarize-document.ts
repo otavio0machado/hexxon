@@ -2,7 +2,8 @@
 // summarizeDocument — Resume documentos acadêmicos
 // ============================================================
 
-import { callAnthropic, parseJSON } from "../anthropic";
+import { callAI } from "../router";
+import { parseJSON } from "../anthropic";
 import type { SummarizeDocumentInput, SummarizeDocumentOutput, AIServiceConfig, AIResponse } from "../types";
 
 const SYSTEM_PROMPT = `Você resume documentos acadêmicos de matemática e ciência da computação.
@@ -45,7 +46,7 @@ Resuma o documento.`;
 
   const maxTokensMap = { brief: 512, standard: 1024, detailed: 2048 };
 
-  return callAnthropic<SummarizeDocumentOutput>(
+  return callAI<SummarizeDocumentOutput>(
     {
       service: "summarizeDocument",
       system: SYSTEM_PROMPT,

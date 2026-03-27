@@ -6,6 +6,12 @@
 // Client + helpers
 export { callAnthropic, parseJSON, buildStudentContext, estimateCost, PRICING, DEFAULT_MODEL, FALLBACK_MODEL } from "./anthropic";
 
+// Router (ponto de entrada principal para serviços)
+export { callAI, getServiceRoute, getAllRoutes } from "./router";
+
+// Gemini client
+export { callGeminiGeneric, GEMINI_PRICING, GEMINI_DEFAULT_MODEL } from "./gemini";
+
 // Types
 export type * from "./types";
 

@@ -4,13 +4,22 @@ import { extractPdfText, chunkText, countWords } from '@/lib/documents/extract'
 import { analyzeDocument } from '@/lib/documents/analyze'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60 // Vercel Pro: 60s, Hobby: 10s
+export const maxDuration = 60
 
 /**
  * POST /api/documents/process
  *
- * Processes a single document: extract text → Claude analysis → chunk → save.
- * Body: { documentId: string }
+ * Two-phase processing optimized for Vercel Hobby (10s timeout):
+ *
+ * Phase 1 (fast, ~2-3s): Download → Extract text → Chunk → Save to DB
+ *   - Returns immediately with extracted data
+ *   - Document status: 'indexed' (text available for search)
+ *
+ * Phase 2 (optional, if body has `analyze: true`):
+ *   - Calls Claude Haiku for classification and analysis
+ *   - Takes ~3-5s extra
+ *
+ * Body: { documentId: string, analyze?: boolean }
  */
 export async function POST(request: Request) {
   try {
@@ -21,7 +30,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Não autenticado' }, { status: 401 })
     }
 
-    const { documentId } = await request.json()
+    const { documentId, analyze = false } = await request.json()
     if (!documentId) {
       return NextResponse.json({ error: 'documentId é obrigatório' }, { status: 400 })
     }
@@ -38,17 +47,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Documento não encontrado' }, { status: 404 })
     }
 
-    if (doc.processing_status === 'indexed') {
+    // If already indexed and not requesting analysis, skip
+    if (doc.processing_status === 'indexed' && !analyze) {
       return NextResponse.json({ ok: true, status: 'already_indexed' })
     }
 
-    // Update status to extracting
+    // If we only need analysis on an already-extracted document
+    if (doc.processing_status === 'indexed' && analyze && doc.extracted_text) {
+      return await runAnalysisOnly(supabase, doc, user.id)
+    }
+
+    // ═══ PHASE 1: Extract + Chunk (fast) ═══
+
     await supabase
       .from('user_documents')
       .update({ processing_status: 'extracting' })
       .eq('id', documentId)
 
-    // Step 1: Download file from storage
+    // Download file
     const { data: fileData, error: downloadError } = await supabase.storage
       .from('user-documents')
       .download(doc.file_path)
@@ -61,10 +77,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Erro ao baixar arquivo' }, { status: 500 })
     }
 
-    // Step 2: Extract text based on mime type
+    // Extract text
     let extractedText = ''
     let pageCount: number | null = null
-
     const buffer = Buffer.from(await fileData.arrayBuffer())
 
     if (doc.mime_type === 'application/pdf') {
@@ -74,59 +89,36 @@ export async function POST(request: Request) {
         pageCount = result.pageCount
       } catch (e) {
         console.error('PDF extraction error:', e)
-        extractedText = '[Erro na extração de texto do PDF]'
+        // Fallback: store empty text, mark as failed
+        await supabase
+          .from('user_documents')
+          .update({ processing_status: 'failed' })
+          .eq('id', documentId)
+        return NextResponse.json({ ok: false, status: 'extraction_failed', error: String(e) })
       }
     } else if (doc.mime_type.startsWith('image/')) {
-      // For images, we store a placeholder — full OCR would need Claude Vision
-      extractedText = '[Documento é uma imagem — processamento via OCR pendente]'
+      extractedText = '[Imagem — OCR pendente]'
     } else {
-      extractedText = '[Formato não suportado para extração de texto]'
+      extractedText = '[Formato não suportado]'
     }
 
-    if (!extractedText || extractedText.length < 10) {
-      await supabase
-        .from('user_documents')
-        .update({
-          processing_status: 'failed',
-          extracted_text: extractedText || null,
-        })
-        .eq('id', documentId)
-      return NextResponse.json({ ok: false, status: 'extraction_failed' })
-    }
+    // Chunk the text (fast, CPU-only)
+    const chunks = extractedText.length > 50 ? chunkText(extractedText) : []
+    const wordCount = countWords(extractedText)
 
-    // Update status to analyzing
-    await supabase
+    // Save text + chunks in parallel
+    const updateDocPromise = supabase
       .from('user_documents')
-      .update({ processing_status: 'analyzing', extracted_text: extractedText })
-      .eq('id', documentId)
-
-    // Step 3: Analyze with Claude
-    let analysis = null
-    try {
-      // Get discipline name for context
-      let disciplineName: string | undefined
-      if (doc.discipline_id) {
-        const { data: disc } = await supabase
-          .from('disciplines')
-          .select('name')
-          .eq('id', doc.discipline_id)
-          .single()
-        disciplineName = disc?.name ?? undefined
-      }
-
-      analysis = await analyzeDocument(extractedText, {
-        fileName: doc.file_name,
-        disciplineName,
+      .update({
+        processing_status: 'indexed',
+        extracted_text: extractedText,
+        page_count: pageCount,
+        word_count: wordCount,
+        processed_at: new Date().toISOString(),
       })
-    } catch (e) {
-      console.error('Analysis error:', e)
-      // Analysis failure is non-fatal — we still have the text
-    }
+      .eq('id', documentId)
+      .then(() => {})
 
-    // Step 4: Chunk the text
-    const chunks = chunkText(extractedText)
-
-    // Step 5: Save chunks to database
     if (chunks.length > 0) {
       const chunkRows = chunks.map((chunk) => ({
         document_id: documentId,
@@ -139,27 +131,46 @@ export async function POST(request: Request) {
         chunk_type: chunk.chunk_type,
       }))
 
-      // Insert in batches of 50
-      for (let i = 0; i < chunkRows.length; i += 50) {
-        const batch = chunkRows.slice(i, i + 50)
-        await supabase.from('document_chunks').insert(batch)
-      }
+      await Promise.all([
+        updateDocPromise,
+        supabase.from('document_chunks').insert(chunkRows).then(() => {}),
+      ])
+    } else {
+      await updateDocPromise
     }
 
-    // Step 6: Update document with results
-    await supabase
-      .from('user_documents')
-      .update({
-        processing_status: 'indexed',
-        extracted_text: extractedText,
-        ai_analysis: analysis,
-        doc_type: analysis?.doc_type || doc.doc_type,
-        doc_type_confidence: analysis?.confidence || null,
-        page_count: pageCount,
-        word_count: countWords(extractedText),
-        processed_at: new Date().toISOString(),
-      })
-      .eq('id', documentId)
+    // ═══ PHASE 2: AI Analysis (optional) ═══
+
+    let analysis = null
+    if (analyze && extractedText.length > 50) {
+      try {
+        let disciplineName: string | undefined
+        if (doc.discipline_id) {
+          const { data: disc } = await supabase
+            .from('disciplines')
+            .select('name')
+            .eq('id', doc.discipline_id)
+            .single()
+          disciplineName = disc?.name ?? undefined
+        }
+
+        analysis = await analyzeDocument(extractedText, {
+          fileName: doc.file_name,
+          disciplineName,
+        })
+
+        await supabase
+          .from('user_documents')
+          .update({
+            ai_analysis: analysis,
+            doc_type: analysis.doc_type || doc.doc_type,
+            doc_type_confidence: analysis.confidence || null,
+          })
+          .eq('id', documentId)
+      } catch (e) {
+        console.error('Analysis error (non-fatal):', e)
+      }
+    }
 
     return NextResponse.json({
       ok: true,
@@ -167,7 +178,7 @@ export async function POST(request: Request) {
       analysis,
       chunks: chunks.length,
       pageCount,
-      wordCount: countWords(extractedText),
+      wordCount,
     })
   } catch (error) {
     console.error('Document process error:', error)
@@ -175,5 +186,45 @@ export async function POST(request: Request) {
       { error: (error as Error).message },
       { status: 500 }
     )
+  }
+}
+
+/**
+ * Run AI analysis on an already-extracted document.
+ */
+async function runAnalysisOnly(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  doc: Record<string, unknown>,
+  userId: string,
+) {
+  try {
+    let disciplineName: string | undefined
+    if (doc.discipline_id) {
+      const { data: disc } = await supabase
+        .from('disciplines')
+        .select('name')
+        .eq('id', doc.discipline_id as string)
+        .single()
+      disciplineName = disc?.name ?? undefined
+    }
+
+    const analysis = await analyzeDocument(doc.extracted_text as string, {
+      fileName: doc.file_name as string,
+      disciplineName,
+    })
+
+    await supabase
+      .from('user_documents')
+      .update({
+        ai_analysis: analysis,
+        doc_type: analysis.doc_type || (doc.doc_type as string),
+        doc_type_confidence: analysis.confidence || null,
+      })
+      .eq('id', doc.id as string)
+
+    return NextResponse.json({ ok: true, status: 'analyzed', analysis })
+  } catch (e) {
+    console.error('Analysis-only error:', e)
+    return NextResponse.json({ ok: true, status: 'analysis_failed', error: String(e) })
   }
 }

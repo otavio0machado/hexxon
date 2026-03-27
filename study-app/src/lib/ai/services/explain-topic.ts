@@ -2,7 +2,8 @@
 // explainTopic — Explica um tópico adaptado ao nível do aluno
 // ============================================================
 
-import { callAnthropic, parseJSON, buildStudentContext } from "../anthropic";
+import { callAI } from "../router";
+import { parseJSON, buildStudentContext } from "../anthropic";
 import type { ExplainTopicInput, ExplainTopicOutput, AIServiceConfig, AIResponse } from "../types";
 
 const SYSTEM_PROMPT = `Você é um professor universitário de matemática e ciência da computação.
@@ -45,7 +46,7 @@ export async function explainTopic(
     ? `Explique "${input.topicName}" com foco em: ${input.focus}`
     : `Explique "${input.topicName}"`;
 
-  return callAnthropic<ExplainTopicOutput>(
+  return callAI<ExplainTopicOutput>(
     {
       service: "explainTopic",
       system,

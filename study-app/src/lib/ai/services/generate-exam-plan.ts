@@ -2,7 +2,8 @@
 // generateExamPlan — Plano de estudo otimizado para prova
 // ============================================================
 
-import { callAnthropic, parseJSON } from "../anthropic";
+import { callAI } from "../router";
+import { parseJSON } from "../anthropic";
 import type { GenerateExamPlanInput, GenerateExamPlanOutput, AIServiceConfig, AIResponse } from "../types";
 
 const SYSTEM_PROMPT = `Você é um planejador de estudo baseado em evidência (spaced repetition, interleaving, testing effect).
@@ -61,7 +62,7 @@ ${errorsSummary}
 
 Gere o plano de estudo otimizado.`;
 
-  return callAnthropic<GenerateExamPlanOutput>(
+  return callAI<GenerateExamPlanOutput>(
     {
       service: "generateExamPlan",
       system: SYSTEM_PROMPT,

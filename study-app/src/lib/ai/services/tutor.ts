@@ -2,7 +2,8 @@
 // tutor — Tutoria socrática adaptativa
 // ============================================================
 
-import { callAnthropic, parseJSON, buildStudentContext } from "../anthropic";
+import { callAI } from "../router";
+import { parseJSON, buildStudentContext } from "../anthropic";
 import type { TutorInput, TutorOutput, AIServiceConfig, AIResponse } from "../types";
 
 const SYSTEM_PROMPT = `Você é um tutor socrático para um aluno de Ciência da Computação (1º semestre).
@@ -61,7 +62,7 @@ export async function tutor(
     ? `${historyStr}\n\nAluno: ${input.message}`
     : `Aluno: ${input.message}`;
 
-  return callAnthropic<TutorOutput>(
+  return callAI<TutorOutput>(
     {
       service: "tutor",
       system,

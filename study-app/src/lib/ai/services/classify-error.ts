@@ -2,7 +2,8 @@
 // classifyError — Classifica erros do aluno em categorias
 // ============================================================
 
-import { callAnthropic, parseJSON } from "../anthropic";
+import { callAI } from "../router";
+import { parseJSON } from "../anthropic";
 import type { ClassifyErrorInput, ClassifyErrorOutput, AIServiceConfig, AIResponse } from "../types";
 
 const SYSTEM_PROMPT = `Você é um especialista em diagnóstico de erros de aprendizagem em matemática e computação.
@@ -50,7 +51,7 @@ ${input.studentAnswer}
 
 Classifique o erro.`;
 
-  return callAnthropic<ClassifyErrorOutput>(
+  return callAI<ClassifyErrorOutput>(
     {
       service: "classifyError",
       system: SYSTEM_PROMPT,

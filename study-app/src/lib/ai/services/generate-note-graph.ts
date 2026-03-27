@@ -1,4 +1,5 @@
-import { callAnthropic, parseJSON } from "../anthropic";
+import { callAI } from "../router";
+import { parseJSON } from "../anthropic";
 import type {
   AIResponse,
   AIServiceConfig,
@@ -59,7 +60,7 @@ ${input.noteContent.slice(0, 6000)}
 
 Gere um diagrama Mermaid adequado para inserir na nota.`;
 
-  return callAnthropic<GenerateNoteGraphOutput>(
+  return callAI<GenerateNoteGraphOutput>(
     {
       service: "generateNoteGraph",
       system: SYSTEM_PROMPT,

@@ -2,7 +2,8 @@
 // generateFlashcards — Gera flashcards para spaced repetition
 // ============================================================
 
-import { callAnthropic, parseJSON, buildStudentContext } from "../anthropic";
+import { callAI } from "../router";
+import { parseJSON, buildStudentContext } from "../anthropic";
 import type { GenerateFlashcardsInput, GenerateFlashcardsOutput, AIServiceConfig, AIResponse } from "../types";
 
 const SYSTEM_PROMPT = `Você gera flashcards de alta qualidade para estudo universitário de matemática/CS.
@@ -55,7 +56,7 @@ export async function generateFlashcards(
 
   const userMessage = `Gere ${count} flashcards sobre "${input.topicName}".${typeFilter}${sourceBlock}`;
 
-  return callAnthropic<GenerateFlashcardsOutput>(
+  return callAI<GenerateFlashcardsOutput>(
     {
       service: "generateFlashcards",
       system,

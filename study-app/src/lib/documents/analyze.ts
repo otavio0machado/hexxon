@@ -3,7 +3,8 @@
 // Classifies document type and extracts structured information
 // ============================================================
 
-import { callAnthropic, parseJSON } from '@/lib/ai/anthropic'
+import { callAI } from '@/lib/ai/router'
+import { parseJSON } from '@/lib/ai/anthropic'
 import type { DocumentAnalysis, BootstrapInput, BootstrapResult } from './types'
 
 /**
@@ -14,32 +15,17 @@ export async function analyzeDocument(
   text: string,
   context: { disciplineName?: string; fileName: string }
 ): Promise<DocumentAnalysis> {
-  // Truncate very long texts to fit context window
-  const maxChars = 60_000 // ~15k tokens
+  // Truncate to keep within context + keep processing fast
+  const maxChars = 30_000 // ~7.5k tokens — faster processing
   const truncatedText = text.length > maxChars
     ? text.slice(0, maxChars) + '\n\n[... texto truncado ...]'
     : text
 
-  const system = `Você é um analisador de documentos acadêmicos. Analise o documento fornecido e extraia informações estruturadas.
+  const system = `Analise este documento acadêmico. Retorne APENAS JSON puro, sem markdown, sem texto antes ou depois.
 
-Retorne EXCLUSIVAMENTE um JSON válido com esta estrutura:
-{
-  "doc_type": "syllabus" | "exercise_list" | "slides" | "textbook" | "past_exam" | "lecture_notes" | "solution_key" | "other",
-  "confidence": 0.0-1.0,
-  "topics": [{ "name": "...", "module_hint": "...", "difficulty_estimate": 1-5 }],
-  "key_concepts": ["conceito1", "conceito2"],
-  "exercises": [{ "statement": "...", "topic_hint": "...", "difficulty": 1-5 }],
-  "dates": [{ "label": "...", "date": "YYYY-MM-DD", "type": "exam" | "assignment" | "deadline" | "other" }],
-  "summary": "resumo de 2-3 frases do documento",
-  "assessment_info": { "type": "...", "weight": "...", "topics_covered": ["..."] } // apenas se for ementa/plano
-}
+{"doc_type":"syllabus|exercise_list|slides|textbook|past_exam|lecture_notes|solution_key|other","confidence":0.0-1.0,"topics":[{"name":"...","module_hint":"...","difficulty_estimate":1-5}],"key_concepts":["..."],"exercises":[{"statement":"...","topic_hint":"...","difficulty":1-5}],"dates":[{"label":"...","date":"YYYY-MM-DD","type":"exam|assignment|deadline|other"}],"summary":"resumo curto","assessment_info":{"type":"...","weight":"...","topics_covered":["..."]}}
 
-REGRAS:
-- Extraia no máximo 15 tópicos principais
-- Para exercícios, extraia no máximo 5 como amostra
-- Datas devem estar em formato ISO (YYYY-MM-DD)
-- O summary deve ter no máximo 200 caracteres
-- Se não tiver certeza de uma classificação, use confidence baixo`
+REGRAS: max 10 tópicos, max 3 exercícios amostra, summary max 150 chars. Sem markdown. JSON puro.`
 
   const userMessage = `Arquivo: ${context.fileName}
 ${context.disciplineName ? `Disciplina: ${context.disciplineName}` : ''}
@@ -47,15 +33,13 @@ ${context.disciplineName ? `Disciplina: ${context.disciplineName}` : ''}
 CONTEÚDO DO DOCUMENTO:
 ${truncatedText}`
 
-  const response = await callAnthropic<DocumentAnalysis>(
+  const response = await callAI<DocumentAnalysis>(
     {
       service: 'document-analysis',
       system,
       userMessage,
-      model: 'claude-sonnet-4-6',
-      maxTokens: 2048,
+      maxTokens: 4096,
       temperature: 0.1,
-      allowFallback: true,
     },
     parseJSON<DocumentAnalysis>
   )
@@ -150,15 +134,13 @@ REGRAS:
     ? `DOCUMENTOS ANALISADOS:\n\n${documentsContext}`
     : `Nenhum documento foi fornecido. Gere um currículo padrão para ${input.course} - semestre ${input.currentSemester} na ${input.university}.`
 
-  const response = await callAnthropic<{ disciplines: BootstrapResult['disciplines'] }>(
+  const response = await callAI<{ disciplines: BootstrapResult['disciplines'] }>(
     {
       service: 'bootstrap-curriculum',
       system,
       userMessage,
-      model: 'claude-sonnet-4-6',
       maxTokens: 4096,
       temperature: 0.2,
-      allowFallback: true,
     },
     parseJSON<{ disciplines: BootstrapResult['disciplines'] }>
   )
@@ -190,15 +172,13 @@ Retorne EXCLUSIVAMENTE um JSON array:
 Tópicos:
 ${topics.map((t) => `- ${t.name} (dificuldade: ${t.difficulty}/5)`).join('\n')}`
 
-  const response = await callAnthropic<Array<{ front: string; back: string; topic: string; type: string }>>(
+  const response = await callAI<Array<{ front: string; back: string; topic: string; type: string }>>(
     {
       service: 'bootstrap-flashcards',
       system,
       userMessage,
-      model: 'claude-sonnet-4-6',
       maxTokens: 2048,
       temperature: 0.3,
-      allowFallback: true,
     },
     parseJSON
   )

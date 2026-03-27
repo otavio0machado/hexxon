@@ -2,7 +2,8 @@
 // generateNotes — Gera notas estruturadas a partir de conteúdo-fonte
 // ============================================================
 
-import { callAnthropic, parseJSON } from "../anthropic";
+import { callAI } from "../router";
+import { parseJSON } from "../anthropic";
 import type { GenerateNotesInput, GenerateNotesOutput, AIServiceConfig, AIResponse } from "../types";
 
 const SYSTEM_PROMPT = `Você transforma conteúdo acadêmico em notas de estudo de alta qualidade.
@@ -41,7 +42,7 @@ ${input.sourceContent.slice(0, 8000)}
 
 Gere as notas.`;
 
-  return callAnthropic<GenerateNotesOutput>(
+  return callAI<GenerateNotesOutput>(
     {
       service: "generateNotes",
       system: SYSTEM_PROMPT,

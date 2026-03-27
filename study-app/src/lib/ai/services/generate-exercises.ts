@@ -2,7 +2,8 @@
 // generateExercises — Gera exercícios adaptativos
 // ============================================================
 
-import { callAnthropic, parseJSON, buildStudentContext } from "../anthropic";
+import { callAI } from "../router";
+import { parseJSON, buildStudentContext } from "../anthropic";
 import type { GenerateExercisesInput, GenerateExercisesOutput, AIServiceConfig, AIResponse } from "../types";
 
 const SYSTEM_PROMPT = `Você gera exercícios de matemática/CS para um aluno de 1º semestre.
@@ -76,7 +77,7 @@ export async function generateExercises(
   const userMessage = `Gere ${count} exercícios sobre "${input.topicName}".
 Dificuldade alvo: ${difficulty}${typeFilter}${errorFilter}`;
 
-  return callAnthropic<GenerateExercisesOutput>(
+  return callAI<GenerateExercisesOutput>(
     {
       service: "generateExercises",
       system,

@@ -56,19 +56,31 @@ export default function OnboardingDocumentosPage() {
       const { document } = await uploadRes.json();
       updateFile(tempId, { id: document.id, status: "processing" });
 
-      // Step 2: Process
+      // Step 2: Extract text (fast, no AI)
       const processRes = await fetch("/api/documents/process", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ documentId: document.id }),
+        body: JSON.stringify({ documentId: document.id, analyze: false }),
       });
 
       if (processRes.ok) {
-        const result = await processRes.json();
-        updateFile(tempId, {
-          status: "done",
-          docType: result.analysis?.doc_type || "other",
-        });
+        updateFile(tempId, { status: "done", docType: "other" });
+
+        // Step 3: AI analysis in background (non-blocking)
+        fetch("/api/documents/process", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ documentId: document.id, analyze: true }),
+        })
+          .then(async (r) => {
+            if (r.ok) {
+              const result = await r.json();
+              if (result.analysis?.doc_type) {
+                updateFile(tempId, { docType: result.analysis.doc_type });
+              }
+            }
+          })
+          .catch(() => {});
       } else {
         updateFile(tempId, { status: "done", docType: "other" });
       }

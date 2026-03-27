@@ -84,11 +84,11 @@ export function UserDocumentsPanel({
             ...prev,
           ]);
 
-          // Trigger processing
+          // Phase 1: Fast extraction (no AI)
           fetch("/api/documents/process", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ documentId: document.id }),
+            body: JSON.stringify({ documentId: document.id, analyze: false }),
           })
             .then(async (res) => {
               if (res.ok) {
@@ -99,14 +99,38 @@ export function UserDocumentsPanel({
                       ? {
                           ...d,
                           processing_status: "indexed",
-                          doc_type: result.analysis?.doc_type || "other",
                           word_count: result.wordCount,
                           page_count: result.pageCount,
-                          ai_analysis: result.analysis,
                         }
                       : d
                   )
                 );
+
+                // Phase 2: AI analysis in background
+                fetch("/api/documents/process", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ documentId: document.id, analyze: true }),
+                })
+                  .then(async (r) => {
+                    if (r.ok) {
+                      const analysisResult = await r.json();
+                      if (analysisResult.analysis) {
+                        setDocuments((prev) =>
+                          prev.map((d) =>
+                            d.id === document.id
+                              ? {
+                                  ...d,
+                                  doc_type: analysisResult.analysis.doc_type || "other",
+                                  ai_analysis: analysisResult.analysis,
+                                }
+                              : d
+                          )
+                        );
+                      }
+                    }
+                  })
+                  .catch(() => {});
               }
             })
             .catch(() => {

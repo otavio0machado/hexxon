@@ -1,22 +1,25 @@
 // ============================================================
 // Document Text Extraction
-// Handles PDF, DOCX, PPTX, and image files
+// Uses unpdf (pure JS, no DOM dependency — works on Vercel)
 // ============================================================
 
 import type { DocumentChunk } from './types'
 
 /**
- * Extract text from a PDF buffer using pdf-parse
+ * Extract text from a PDF buffer using unpdf (no DOMMatrix needed).
  */
 export async function extractPdfText(buffer: Buffer): Promise<{ text: string; pageCount: number }> {
-  // Dynamic import to avoid bundling issues
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const pdfParse = require('pdf-parse') as (buf: Buffer) => Promise<{ text: string; numpages: number }>
-  const result = await pdfParse(buffer)
-  return {
-    text: result.text,
-    pageCount: result.numpages,
-  }
+  const { extractText, getDocumentProxy } = await import('unpdf')
+  const uint8 = new Uint8Array(buffer)
+
+  // Get page count
+  const pdf = await getDocumentProxy(uint8)
+  const pageCount = pdf.numPages
+
+  // Extract all text
+  const { text } = await extractText(uint8, { mergePages: true })
+
+  return { text, pageCount }
 }
 
 /**
@@ -42,10 +45,9 @@ export function chunkText(
   options: { maxTokens?: number; overlap?: number } = {}
 ): Omit<DocumentChunk, 'id' | 'document_id' | 'user_id' | 'created_at'>[] {
   const { maxTokens = 500, overlap = 50 } = options
-  const maxChars = maxTokens * 4 // rough estimate
+  const maxChars = maxTokens * 4
   const overlapChars = overlap * 4
 
-  // Split by double newlines (paragraphs) first
   const paragraphs = text.split(/\n{2,}/).filter((p) => p.trim().length > 20)
   const chunks: Omit<DocumentChunk, 'id' | 'document_id' | 'user_id' | 'created_at'>[] = []
 
@@ -63,14 +65,12 @@ export function chunkText(
         chunk_type: detectChunkType(currentChunk),
       })
       chunkIndex++
-      // Keep overlap from end of previous chunk
       currentChunk = currentChunk.slice(-overlapChars) + '\n\n' + paragraph
     } else {
       currentChunk += (currentChunk ? '\n\n' : '') + paragraph
     }
   }
 
-  // Push remaining
   if (currentChunk.trim().length > 20) {
     chunks.push({
       chunk_index: chunkIndex,
@@ -85,15 +85,12 @@ export function chunkText(
   return chunks
 }
 
-/**
- * Simple heuristic to detect chunk type
- */
 function detectChunkType(text: string): 'text' | 'exercise' | 'definition' | 'theorem' | 'example' {
-  const lower = text.toLowerCase()
   if (/^(exerc[ií]cio|quest[aã]o|problema)\s*\d/im.test(text)) return 'exercise'
   if (/^(defini[çc][aã]o|def\.)\s/im.test(text)) return 'definition'
   if (/^(teorema|teo\.)\s/im.test(text)) return 'theorem'
   if (/^(exemplo|ex\.)\s*\d/im.test(text)) return 'example'
+  const lower = text.toLowerCase()
   if (lower.includes('resolução') || lower.includes('solução')) return 'example'
   return 'text'
 }

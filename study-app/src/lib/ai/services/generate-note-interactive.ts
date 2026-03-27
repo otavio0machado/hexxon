@@ -1,4 +1,5 @@
-import { callAnthropic, parseJSON } from "../anthropic";
+import { callAI } from "../router";
+import { parseJSON } from "../anthropic";
 import type {
   AIResponse,
   AIServiceConfig,
@@ -54,7 +55,7 @@ ${input.noteContent.slice(0, 8000)}
 
 Gere um bloco interativo pronto para insercao na nota.`;
 
-  return callAnthropic<GenerateNoteInteractiveOutput>(
+  return callAI<GenerateNoteInteractiveOutput>(
     {
       service: "generateNoteInteractive",
       system: SYSTEM_PROMPT,

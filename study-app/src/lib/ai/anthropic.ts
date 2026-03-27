@@ -214,6 +214,7 @@ export async function callAnthropic<T>(
 
 /**
  * Extrai JSON de uma resposta que pode conter markdown ```json ... ```
+ * Também tenta reparar JSON truncado (quando maxTokens corta a resposta).
  */
 export function parseJSON<T>(raw: string): T {
   // Remove markdown code fences se presentes
@@ -221,11 +222,109 @@ export function parseJSON<T>(raw: string): T {
   if (cleaned.startsWith("```")) {
     cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, "").replace(/\n?```\s*$/, "");
   }
+
+  // Remove any trailing text after the JSON (Claude sometimes adds commentary)
+  const firstBrace = cleaned.indexOf("{");
+  const firstBracket = cleaned.indexOf("[");
+  const startIdx = firstBrace === -1 ? firstBracket : firstBracket === -1 ? firstBrace : Math.min(firstBrace, firstBracket);
+  if (startIdx > 0) {
+    cleaned = cleaned.slice(startIdx);
+  }
+
+  // Try direct parse first
   try {
     return JSON.parse(cleaned) as T;
   } catch {
-    throw new Error(`[AI] Falha ao parsear JSON da resposta: ${cleaned.slice(0, 200)}...`);
+    // Try to repair truncated JSON by closing open brackets/braces
+    try {
+      const repaired = repairTruncatedJSON(cleaned);
+      return JSON.parse(repaired) as T;
+    } catch {
+      throw new Error(`[AI] Falha ao parsear JSON da resposta: ${cleaned.slice(0, 200)}...`);
+    }
   }
+}
+
+/**
+ * Attempts to repair truncated JSON by closing unclosed brackets/braces.
+ * Handles cases where maxTokens cuts off the response mid-JSON.
+ */
+function repairTruncatedJSON(json: string): string {
+  let repaired = json.trim();
+
+  // Remove trailing comma
+  repaired = repaired.replace(/,\s*$/, "");
+
+  // Remove incomplete string at the end (trailing unclosed quote)
+  // Find if we have an unclosed string
+  let inString = false;
+  let escaped = false;
+  let lastCompleteIdx = 0;
+
+  for (let i = 0; i < repaired.length; i++) {
+    const ch = repaired[i];
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      if (!inString) {
+        lastCompleteIdx = i;
+      }
+    } else if (!inString) {
+      if (ch === "}" || ch === "]" || ch === "," || ch === ":") {
+        lastCompleteIdx = i;
+      }
+    }
+  }
+
+  // If we're inside an unclosed string, truncate to last complete point
+  if (inString) {
+    repaired = repaired.slice(0, lastCompleteIdx + 1);
+    // Remove trailing comma
+    repaired = repaired.replace(/,\s*$/, "");
+  }
+
+  // Count unclosed brackets/braces and close them
+  const stack: string[] = [];
+  inString = false;
+  escaped = false;
+
+  for (const ch of repaired) {
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    if (ch === "\\") {
+      escaped = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+
+    if (ch === "{") stack.push("}");
+    else if (ch === "[") stack.push("]");
+    else if (ch === "}" || ch === "]") {
+      if (stack.length > 0 && stack[stack.length - 1] === ch) {
+        stack.pop();
+      }
+    }
+  }
+
+  // Close all unclosed brackets/braces
+  while (stack.length > 0) {
+    repaired += stack.pop();
+  }
+
+  return repaired;
 }
 
 // ── Helpers de contexto ──
