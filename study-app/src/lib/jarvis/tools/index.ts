@@ -1359,91 +1359,99 @@ const tools: ToolDefinition[] = [
         const examDate = params.exam_date as string
         const hoursPerDay = (params.hours_per_day as number) ?? 3
 
-        // 1. Readiness analysis
-        const topicIds = await getAssessmentTopicIds(assessmentId)
-        const report = await generateReadinessReport(assessmentName, topicIds)
-
-        // 2. Get topics data for plan generation
-        const allTopics = await getAllTopics()
+        // Phase 1: Parallel data fetch (no AI calls)
+        const [topicIds, allTopics] = await Promise.all([
+          getAssessmentTopicIds(assessmentId),
+          getAllTopics(),
+        ])
         const examTopics = allTopics.filter(t => topicIds.includes(t.id))
-
-        // 3. Generate study plan
-        const planResult = await generateExamPlan({
-          examName: assessmentName,
-          courseName: context?.currentDisciplineName ?? '',
-          examDate,
-          topics: examTopics.map(t => ({
-            name: t.name,
-            mastery: t.mastery as 'none' | 'exposed' | 'developing' | 'proficient' | 'mastered',
-            score: t.score ?? 0,
-          })),
-          hoursPerDay,
-          errorPatterns: context?.errorBreakdown.map(e => ({
-            class: e.category as 'conceptual' | 'procedural' | 'algebraic' | 'prerequisite' | 'reading',
-            count: e.count,
-          })),
-        })
-
-        // 4. Generate flashcards for weak topics
         const weakTopics = examTopics.filter(t => t.mastery === 'none' || t.mastery === 'exposed' || t.mastery === 'developing')
-        let flashcardsCreated = 0
-        for (const topic of weakTopics.slice(0, 3)) {
-          try {
-            const fcResult = await aiGenerateFlashcards({
+
+        // Phase 2: Parallel AI generation — readiness + plan + flashcards + exercises all at once
+        const courseName = context?.currentDisciplineName ?? ''
+        const topWeakTopics = weakTopics.slice(0, 2) // Limit to 2 to stay within timeout
+
+        const [report, planResult, fcResults, exResults] = await Promise.all([
+          generateReadinessReport(assessmentName, topicIds),
+          generateExamPlan({
+            examName: assessmentName,
+            courseName,
+            examDate,
+            topics: examTopics.map(t => ({
+              name: t.name,
+              mastery: t.mastery as 'none' | 'exposed' | 'developing' | 'proficient' | 'mastered',
+              score: t.score ?? 0,
+            })),
+            hoursPerDay,
+            errorPatterns: context?.errorBreakdown?.map(e => ({
+              class: e.category as 'conceptual' | 'procedural' | 'algebraic' | 'prerequisite' | 'reading',
+              count: e.count,
+            })),
+          }),
+          // Generate flashcards for each weak topic in parallel
+          Promise.all(topWeakTopics.map(topic =>
+            aiGenerateFlashcards({
               topicName: topic.name,
-              courseName: context?.currentDisciplineName ?? '',
+              courseName,
               masteryLevel: topic.mastery as 'none' | 'exposed' | 'developing' | 'proficient' | 'mastered',
               count: 3,
-            })
-            for (const card of fcResult.data.cards) {
-              await createFlashcard({
-                topic_id: topic.id,
-                discipline_id: topic.discipline_id,
-                front: card.front,
-                back: card.back,
-                type: card.type,
-                difficulty: card.difficulty,
-                ai_generated: true,
-              })
-              flashcardsCreated++
-            }
-          } catch { /* continue */ }
-        }
-
-        // 5. Generate exercises for weak topics
-        let exercisesCreated = 0
-        for (const topic of weakTopics.slice(0, 3)) {
-          try {
-            const exResult = await aiGenerateExercises({
+            }).catch(() => null)
+          )),
+          // Generate exercises for each weak topic in parallel
+          Promise.all(topWeakTopics.map(topic =>
+            aiGenerateExercises({
               topicName: topic.name,
-              courseName: context?.currentDisciplineName ?? '',
+              courseName,
               masteryLevel: topic.mastery as 'none' | 'exposed' | 'developing' | 'proficient' | 'mastered',
               count: 2,
               difficulty: topic.mastery === 'none' ? 2 : 3,
-            })
-            const typeMap: Record<string, ExerciseType> = { 'multiple-choice': 'multiple_choice', 'open-ended': 'open_ended', 'proof': 'proof', 'computation': 'computation' }
-            for (const ex of exResult.data.exercises) {
-              await createExercise({
-                topic_id: topic.id,
-                discipline_id: topic.discipline_id,
-                statement: ex.statement,
-                type: typeMap[ex.type] ?? 'open_ended',
-                difficulty: ex.difficulty,
-                solution: ex.solution,
-                hints: ex.hints,
-                concepts_tested: ex.conceptsTested,
-                ai_generated: true,
-              })
-              exercisesCreated++
-            }
-          } catch { /* continue */ }
+            }).catch(() => null)
+          )),
+        ])
+
+        // Phase 3: Save generated content in parallel
+
+        let flashcardsCreated = 0
+        let exercisesCreated = 0
+        const savePromises: Promise<void>[] = []
+
+        // Save flashcards
+        for (let i = 0; i < topWeakTopics.length; i++) {
+          const fcResult = fcResults[i]
+          if (!fcResult?.data?.cards) continue
+          for (const card of fcResult.data.cards) {
+            savePromises.push(
+              createFlashcard({
+                topic_id: topWeakTopics[i].id,
+                discipline_id: topWeakTopics[i].discipline_id,
+                front: card.front, back: card.back, type: card.type, difficulty: card.difficulty, ai_generated: true,
+              }).then(() => { flashcardsCreated++ })
+            )
+          }
         }
 
-        // 6. Create summary note
+        // Save exercises
+        const typeMap: Record<string, ExerciseType> = { 'multiple-choice': 'multiple_choice', 'open-ended': 'open_ended', 'proof': 'proof', 'computation': 'computation' }
+        for (let i = 0; i < topWeakTopics.length; i++) {
+          const exResult = exResults[i]
+          if (!exResult?.data?.exercises) continue
+          for (const ex of exResult.data.exercises) {
+            savePromises.push(
+              createExercise({
+                topic_id: topWeakTopics[i].id,
+                discipline_id: topWeakTopics[i].discipline_id,
+                statement: ex.statement, type: typeMap[ex.type] ?? 'open_ended', difficulty: ex.difficulty,
+                solution: ex.solution, hints: ex.hints, concepts_tested: ex.conceptsTested, ai_generated: true,
+              }).then(() => { exercisesCreated++ })
+            )
+          }
+        }
+
+        // Save note
         let noteCreated = false
-        try {
-          const weakNames = weakTopics.map(t => `${t.name} (${t.mastery})`).join(', ')
-          await createNote({
+        const weakNames = weakTopics.map(t => `${t.name} (${t.mastery})`).join(', ')
+        savePromises.push(
+          createNote({
             title: `Missão: ${params.goal}`,
             content: `# ${params.goal}\n\n**Prova:** ${assessmentName} (${examDate})\n**Readiness:** ${report.readinessScore}%\n\n## Tópicos Fracos\n${weakNames}\n\n## Estratégia\n${planResult.data.strategy}\n\n## Tópicos de Risco\n${planResult.data.riskTopics.join(', ')}\n\n## Cronograma\n${planResult.data.blocks.map(b => `- Dia ${b.day}: ${b.topic} — ${b.activity} (${b.durationMin}min)`).join('\n')}`,
             topic_id: examTopics[0]?.id ?? '',
@@ -1452,11 +1460,12 @@ const tools: ToolDefinition[] = [
             key_concepts: planResult.data.riskTopics,
             tags: ['missão', 'plano-de-estudo'],
             ai_generated: true,
-          })
-          noteCreated = true
-        } catch { /* continue */ }
+          }).then(() => { noteCreated = true }).catch(() => {})
+        )
 
-        // 7. Build response
+        await Promise.allSettled(savePromises)
+
+        // Phase 4: Build response
         let response = `## Missão Criada: ${params.goal}\n\n`
         response += `**Readiness atual:** ${report.readinessScore}%\n\n`
         response += `✅ Plano de ${planResult.data.totalDays} dias gerado\n`
@@ -1497,53 +1506,69 @@ const tools: ToolDefinition[] = [
     required: ['assessment_id', 'assessment_name', 'exam_date'],
     execute: async (params, context) => {
       try {
-        const topicIds = await getAssessmentTopicIds(params.assessment_id as string)
-        const allTopics = await getAllTopics()
+        const [topicIds, allTopics] = await Promise.all([
+          getAssessmentTopicIds(params.assessment_id as string),
+          getAllTopics(),
+        ])
         const examTopics = allTopics.filter(t => topicIds.includes(t.id))
         const weakTopics = examTopics.filter(t => t.mastery === 'none' || t.mastery === 'exposed' || t.mastery === 'developing')
+        const courseName = context?.currentDisciplineName ?? ''
+        const topWeakTopics = weakTopics.slice(0, 3)
 
+        // Parallel AI generation (separate Promise.all for type safety)
+        const [fcResults, exResults] = await Promise.all([
+          Promise.all(topWeakTopics.map(topic =>
+            aiGenerateFlashcards({
+              topicName: topic.name, courseName,
+              masteryLevel: topic.mastery as 'none' | 'exposed' | 'developing' | 'proficient' | 'mastered',
+              count: 2,
+            }).catch(() => null)
+          )),
+          Promise.all(topWeakTopics.map(topic =>
+            aiGenerateExercises({
+              topicName: topic.name, courseName,
+              masteryLevel: topic.mastery as 'none' | 'exposed' | 'developing' | 'proficient' | 'mastered',
+              count: 2,
+            }).catch(() => null)
+          )),
+        ])
+
+        // Parallel save
         let flashcardsCreated = 0
         let exercisesCreated = 0
+        const savePromises: Promise<void>[] = []
 
-        // Generate flashcards
-        for (const topic of weakTopics.slice(0, 4)) {
-          try {
-            const result = await aiGenerateFlashcards({
-              topicName: topic.name,
-              courseName: context?.currentDisciplineName ?? '',
-              masteryLevel: topic.mastery as 'none' | 'exposed' | 'developing' | 'proficient' | 'mastered',
-              count: 2,
-            })
-            for (const card of result.data.cards) {
-              await createFlashcard({
-                topic_id: topic.id, discipline_id: topic.discipline_id,
-                front: card.front, back: card.back, type: card.type, difficulty: card.difficulty, ai_generated: true,
-              })
-              flashcardsCreated++
+        for (let i = 0; i < topWeakTopics.length; i++) {
+          const fcResult = fcResults[i]
+          if (fcResult?.data?.cards) {
+            for (const card of fcResult.data.cards) {
+              savePromises.push(
+                createFlashcard({
+                  topic_id: topWeakTopics[i].id, discipline_id: topWeakTopics[i].discipline_id,
+                  front: card.front, back: card.back, type: card.type, difficulty: card.difficulty, ai_generated: true,
+                }).then(() => { flashcardsCreated++ })
+              )
             }
-          } catch { /* continue */ }
+          }
         }
 
-        // Generate exercises
-        for (const topic of weakTopics.slice(0, 3)) {
-          try {
-            const result = await aiGenerateExercises({
-              topicName: topic.name,
-              courseName: context?.currentDisciplineName ?? '',
-              masteryLevel: topic.mastery as 'none' | 'exposed' | 'developing' | 'proficient' | 'mastered',
-              count: 2,
-            })
-            const typeMap: Record<string, ExerciseType> = { 'multiple-choice': 'multiple_choice', 'open-ended': 'open_ended', 'proof': 'proof', 'computation': 'computation' }
-            for (const ex of result.data.exercises) {
-              await createExercise({
-                topic_id: topic.id, discipline_id: topic.discipline_id,
-                statement: ex.statement, type: typeMap[ex.type] ?? 'open_ended', difficulty: ex.difficulty,
-                solution: ex.solution, hints: ex.hints, concepts_tested: ex.conceptsTested, ai_generated: true,
-              })
-              exercisesCreated++
+        const typeMap: Record<string, ExerciseType> = { 'multiple-choice': 'multiple_choice', 'open-ended': 'open_ended', 'proof': 'proof', 'computation': 'computation' }
+        for (let i = 0; i < topWeakTopics.length; i++) {
+          const exResult = exResults[i]
+          if (exResult?.data?.exercises) {
+            for (const ex of exResult.data.exercises) {
+              savePromises.push(
+                createExercise({
+                  topic_id: topWeakTopics[i].id, discipline_id: topWeakTopics[i].discipline_id,
+                  statement: ex.statement, type: typeMap[ex.type] ?? 'open_ended', difficulty: ex.difficulty,
+                  solution: ex.solution, hints: ex.hints, concepts_tested: ex.conceptsTested, ai_generated: true,
+                }).then(() => { exercisesCreated++ })
+              )
             }
-          } catch { /* continue */ }
+          }
         }
+
+        await Promise.allSettled(savePromises)
 
         return makeResult('', true, `Kit de estudo montado para ${params.assessment_name}:\n✅ ${flashcardsCreated} flashcards\n✅ ${exercisesCreated} exercícios\nTudo focado nos tópicos fracos: ${weakTopics.map(t => t.name).join(', ')}`, {
           flashcardsCreated, exercisesCreated,
