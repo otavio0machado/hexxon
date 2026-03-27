@@ -219,6 +219,22 @@ export interface SummarizeDocumentOutput {
   keyResults: string[];
 }
 
+// ── 8. generateNoteGraph ──
+
+export interface GenerateNoteGraphInput {
+  graphType: "auto" | "flowchart" | "mindmap" | "sequence" | "journey" | "quadrant" | "xychart";
+  request: string;
+  noteContent: string;
+  courseName?: string;
+  topicName?: string;
+}
+
+export interface GenerateNoteGraphOutput {
+  title: string;
+  mermaid: string;
+  explanation: string;
+}
+
 // ── 8. generateExercises ──
 
 export interface GenerateExercisesInput {

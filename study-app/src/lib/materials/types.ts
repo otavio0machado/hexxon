@@ -6,6 +6,24 @@ export type MaterialDocumentType =
   | "livro_texto";
 
 export type MaterialRelevance = "critical" | "high" | "medium" | "low";
+export type MaterialDocumentSource = "seed" | "custom";
+
+export interface MaterialDocument {
+  id: string;
+  filename: string;
+  type: MaterialDocumentType;
+  disciplineId: string;
+  topicIds: string[];
+  description: string;
+  relevance: MaterialRelevance;
+  usage: string;
+  hasExercises: boolean;
+  hasSolutions: boolean;
+  pageCount: number;
+  source: MaterialDocumentSource;
+  storagePath?: string | null;
+  uploadedAt?: string | null;
+}
 
 export interface SeedDiscipline {
   id: string;
@@ -76,19 +94,7 @@ export interface SeedAssessment {
   score: number | null;
 }
 
-export interface SeedDocument {
-  id: string;
-  filename: string;
-  type: MaterialDocumentType;
-  disciplineId: string;
-  topicIds: string[];
-  description: string;
-  relevance: MaterialRelevance;
-  usage: string;
-  hasExercises: boolean;
-  hasSolutions: boolean;
-  pageCount: number;
-}
+export type SeedDocument = Omit<MaterialDocument, "source" | "storagePath" | "uploadedAt">;
 
 export interface SeedConceptNode {
   id: string;

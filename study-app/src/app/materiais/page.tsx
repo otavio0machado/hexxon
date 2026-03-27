@@ -1,11 +1,15 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
+import { getCurriculumDisciplines, getCurriculumModules, getCurriculumTopics } from "@/lib/materials/catalog";
+import type { MaterialDocument } from "@/lib/materials/types";
 import {
-  getCurriculumDisciplines,
-  getCurriculumModules,
-  getCurriculumTopics,
-  getExerciseSourceDocuments,
-  groupDocumentsByDiscipline,
-} from "@/lib/materials/catalog";
+  groupMaterialDocumentsByDiscipline,
+  listCustomMaterialDocuments,
+  listExerciseSourceDocuments,
+} from "@/lib/materials/server";
+import { MaterialUploadPanel } from "./material-upload-panel";
+
+export const dynamic = "force-dynamic";
 
 const typeLabels: Record<string, string> = {
   plano_ensino: "Plano de ensino",
@@ -15,12 +19,23 @@ const typeLabels: Record<string, string> = {
   livro_texto: "Livro-base",
 };
 
-export default function MateriaisPage() {
+export default async function MateriaisPage() {
   const disciplines = getCurriculumDisciplines();
-  const grouped = groupDocumentsByDiscipline();
-  const officialExerciseSources = getExerciseSourceDocuments().filter(
+  const grouped = await groupMaterialDocumentsByDiscipline();
+  const customDocuments = await listCustomMaterialDocuments();
+  const officialExerciseSources = (await listExerciseSourceDocuments()).filter(
     (document) =>
-      document.type === "lista_exercicios" || document.type === "exemplos_resolvidos",
+      document.source === "seed" &&
+      (document.type === "lista_exercicios" || document.type === "exemplos_resolvidos"),
+  );
+  const topicOptionsByDiscipline = Object.fromEntries(
+    disciplines.map((discipline) => [
+      discipline.id,
+      getCurriculumTopics(discipline.id).map((topic) => ({
+        id: topic.id,
+        name: topic.name,
+      })),
+    ]),
   );
 
   return (
@@ -53,8 +68,58 @@ export default function MateriaisPage() {
         </div>
       </section>
 
+      <MaterialUploadPanel
+        disciplineOptions={disciplines.map((discipline) => ({
+          id: discipline.id,
+          name: discipline.name,
+        }))}
+        topicOptionsByDiscipline={topicOptionsByDiscipline}
+      />
+
+      {customDocuments.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-fg-primary">Materiais adicionados no app</h2>
+              <p className="text-sm text-fg-tertiary">
+                PDFs enviados diretamente por você e já disponíveis para consulta.
+              </p>
+            </div>
+            <p className="text-sm text-fg-muted">{customDocuments.length} material(is) personalizado(s)</p>
+          </div>
+
+          <div className="grid gap-4 xl:grid-cols-2">
+            {customDocuments.map((document) => (
+              <DocumentCard
+                key={document.id}
+                document={document}
+                href={`/materiais/${document.id}`}
+                badges={[
+                  <span
+                    key="source"
+                    className="rounded-full bg-accent-primary/10 px-2 py-1 text-xs text-accent-primary"
+                  >
+                    Adicionado no app
+                  </span>,
+                  ...(document.hasExercises
+                    ? [
+                        <span
+                          key="exercises"
+                          className="rounded-full bg-accent-info/10 px-2 py-1 text-xs text-accent-info"
+                        >
+                          Tem exercícios
+                        </span>,
+                      ]
+                    : []),
+                ]}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-lg font-semibold text-fg-primary">Banco oficial de prática</h2>
             <p className="text-sm text-fg-tertiary">
@@ -63,27 +128,9 @@ export default function MateriaisPage() {
           </div>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           {officialExerciseSources.map((document) => (
-            <Link
-              key={document.id}
-              href={`/materiais/${document.id}`}
-              className="rounded-xl border border-border-default bg-bg-surface p-4 transition-colors hover:border-accent-primary hover:bg-bg-tertiary"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-2">
-                  <span className="inline-flex rounded-full border border-border-default px-2 py-0.5 text-[11px] uppercase tracking-wider text-fg-muted">
-                    {typeLabels[document.type]}
-                  </span>
-                  <h3 className="font-medium text-fg-primary">{document.filename}</h3>
-                  <p className="text-sm text-fg-secondary">{document.description}</p>
-                </div>
-                <div className="text-right text-xs text-fg-muted">
-                  <p>{document.pageCount} págs.</p>
-                  <p>{document.hasSolutions ? "Com gabarito" : "Sem gabarito"}</p>
-                </div>
-              </div>
-            </Link>
+            <DocumentCard key={document.id} document={document} href={`/materiais/${document.id}`} />
           ))}
         </div>
       </section>
@@ -111,71 +158,87 @@ export default function MateriaisPage() {
               </div>
 
               <div className="grid gap-4 xl:grid-cols-2">
-                {documents.map((document) => (
-                  <Link
-                    key={document.id}
-                    href={`/materiais/${document.id}`}
-                    className="rounded-2xl border border-border-default bg-bg-surface p-5 transition-colors hover:border-accent-primary hover:bg-bg-tertiary"
-                  >
-                    <div className="space-y-4">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-2">
-                          <span className="inline-flex rounded-full border border-border-default px-2 py-0.5 text-[11px] uppercase tracking-wider text-fg-muted">
-                            {typeLabels[document.type]}
-                          </span>
-                          <h3 className="text-lg font-medium text-fg-primary">{document.filename}</h3>
-                        </div>
+                {documents.map((document) => {
+                  const topicBadges = document.topicIds
+                    .slice(0, 4)
+                    .map((topicId) => {
+                      const topic = getCurriculumTopics(discipline.id).find((entry) => entry.id === topicId);
+                      if (!topic) {
+                        return null;
+                      }
 
-                        <div className="text-right text-xs text-fg-muted">
-                          <p>{document.pageCount} págs.</p>
-                          <p>{document.relevance}</p>
-                        </div>
-                      </div>
+                      return (
+                        <span
+                          key={topic.id}
+                          className="rounded-full bg-bg-secondary px-2 py-1 text-xs text-fg-secondary"
+                        >
+                          {topic.name}
+                        </span>
+                      );
+                    })
+                    .filter(Boolean);
 
-                      <p className="text-sm leading-6 text-fg-secondary">{document.description}</p>
-
-                      <div className="flex flex-wrap gap-2">
-                        {document.hasExercises && (
-                          <span className="rounded-full bg-accent-info/10 px-2 py-1 text-xs text-accent-info">
-                            Exercícios oficiais
-                          </span>
-                        )}
-                        {document.hasSolutions && (
-                          <span className="rounded-full bg-accent-success/10 px-2 py-1 text-xs text-accent-success">
-                            Tem resolução
-                          </span>
-                        )}
-                        {!document.topicIds.length && (
-                          <span className="rounded-full bg-bg-tertiary px-2 py-1 text-xs text-fg-muted">
-                            Documento estruturante da disciplina
-                          </span>
-                        )}
-                      </div>
-
-                      {document.topicIds.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {document.topicIds.slice(0, 4).map((topicId) => {
-                            const topic = getCurriculumTopics(discipline.id).find((entry) => entry.id === topicId);
-                            if (!topic) return null;
-                            return (
+                  return (
+                    <DocumentCard
+                      key={document.id}
+                      document={document}
+                      href={`/materiais/${document.id}`}
+                      badges={[
+                        ...(document.source === "custom"
+                          ? [
                               <span
-                                key={topic.id}
-                                className="rounded-full bg-bg-secondary px-2 py-1 text-xs text-fg-secondary"
+                                key="source"
+                                className="rounded-full bg-accent-primary/10 px-2 py-1 text-xs text-accent-primary"
                               >
-                                {topic.name}
-                              </span>
-                            );
-                          })}
-                          {document.topicIds.length > 4 && (
-                            <span className="rounded-full bg-bg-secondary px-2 py-1 text-xs text-fg-muted">
-                              +{document.topicIds.length - 4} tópicos
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </Link>
-                ))}
+                                Adicionado no app
+                              </span>,
+                            ]
+                          : []),
+                        ...(document.hasExercises
+                          ? [
+                              <span
+                                key="hasExercises"
+                                className="rounded-full bg-accent-info/10 px-2 py-1 text-xs text-accent-info"
+                              >
+                                Exercícios oficiais
+                              </span>,
+                            ]
+                          : []),
+                        ...(document.hasSolutions
+                          ? [
+                              <span
+                                key="hasSolutions"
+                                className="rounded-full bg-accent-success/10 px-2 py-1 text-xs text-accent-success"
+                              >
+                                Tem resolução
+                              </span>,
+                            ]
+                          : []),
+                        ...(!document.topicIds.length
+                          ? [
+                              <span
+                                key="general"
+                                className="rounded-full bg-bg-tertiary px-2 py-1 text-xs text-fg-muted"
+                              >
+                                Documento estruturante da disciplina
+                              </span>,
+                            ]
+                          : []),
+                        ...topicBadges,
+                        ...(document.topicIds.length > 4
+                          ? [
+                              <span
+                                key="topics-more"
+                                className="rounded-full bg-bg-secondary px-2 py-1 text-xs text-fg-muted"
+                              >
+                                +{document.topicIds.length - 4} tópicos
+                              </span>,
+                            ]
+                          : []),
+                      ]}
+                    />
+                  );
+                })}
               </div>
             </div>
           );
@@ -185,9 +248,49 @@ export default function MateriaisPage() {
   );
 }
 
+function DocumentCard({
+  document,
+  href,
+  badges = [],
+}: {
+  document: MaterialDocument;
+  href: string;
+  badges?: ReactNode[];
+}) {
+  return (
+    <Link
+      href={href}
+      className="group rounded-2xl border border-border-default bg-bg-surface p-5 transition-colors hover:border-accent-primary hover:bg-bg-tertiary"
+    >
+      <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-start">
+          <div className="min-w-0 space-y-2">
+            <span className="inline-flex rounded-full border border-border-default px-2 py-0.5 text-[11px] uppercase tracking-wider text-fg-muted">
+              {typeLabels[document.type]}
+            </span>
+            <h3 className="text-lg font-medium text-fg-primary [overflow-wrap:anywhere]">
+              {document.filename}
+            </h3>
+            <p className="text-sm leading-6 text-fg-secondary [overflow-wrap:anywhere]">
+              {document.description}
+            </p>
+          </div>
+
+          <div className="flex shrink-0 flex-col gap-1 text-left text-xs text-fg-muted md:items-end md:text-right">
+            {document.pageCount > 0 ? <p>{document.pageCount} págs.</p> : <p>Páginas a confirmar</p>}
+            <p>{document.source === "custom" ? "Material pessoal" : document.relevance}</p>
+          </div>
+        </div>
+
+        {badges.length > 0 && <div className="flex flex-wrap gap-2">{badges}</div>}
+      </div>
+    </Link>
+  );
+}
+
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-xl border border-border-default bg-bg-surface px-4 py-3">
+    <div className="min-w-0 rounded-xl border border-border-default bg-bg-surface px-4 py-3">
       <p className="text-xs uppercase tracking-widest text-fg-muted">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-fg-primary">{value}</p>
     </div>

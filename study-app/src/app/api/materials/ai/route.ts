@@ -3,9 +3,9 @@ import { generateFlashcards } from "@/lib/ai/services/generate-flashcards";
 import { generateNotes } from "@/lib/ai/services/generate-notes";
 import { explainTopic } from "@/lib/ai/services/explain-topic";
 import { summarizeDocument } from "@/lib/ai/services/summarize-document";
-import { getCurriculumDiscipline, getCurriculumDocument, getCurriculumTopic } from "@/lib/materials/catalog";
+import { getCurriculumDiscipline, getCurriculumTopic } from "@/lib/materials/catalog";
 import { getMaterialTags, prependMaterialHeader } from "@/lib/materials/provenance";
-import { buildMaterialSourceContent } from "@/lib/materials/server";
+import { buildMaterialSourceContent, getMaterialDocument } from "@/lib/materials/server";
 import { createFlashcard } from "@/lib/services/flashcards";
 import { createNote } from "@/lib/services/notes";
 import type { NoteFormat } from "@/lib/supabase";
@@ -38,7 +38,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const document = getCurriculumDocument(body.documentId);
+    const document = await getMaterialDocument(body.documentId);
     if (!document) {
       return NextResponse.json({ error: "Documento não encontrado" }, { status: 404 });
     }
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
     const selectedTopicId = body.topicId ?? document.topicIds[0];
     const topic = selectedTopicId ? getCurriculumTopic(selectedTopicId) : null;
-    const source = buildMaterialSourceContent(document.id);
+    const source = await buildMaterialSourceContent(document.id);
 
     if ((body.action === "explain" || body.action === "notes" || body.action === "flashcards") && !topic) {
       return NextResponse.json(

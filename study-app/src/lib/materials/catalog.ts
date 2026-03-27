@@ -6,10 +6,10 @@ import documentSeeds from "@/data/materials/documents-index.json";
 import conceptGraphSeed from "@/data/materials/concept-graph.json";
 import type {
   DocumentExtract,
+  MaterialDocument,
   SeedAssessment,
   SeedConceptGraph,
   SeedDiscipline,
-  SeedDocument,
   SeedModule,
   SeedTopic,
 } from "@/lib/materials/types";
@@ -19,7 +19,12 @@ const disciplines = disciplineSeeds as SeedDiscipline[];
 const modules = moduleSeeds as SeedModule[];
 const topics = topicSeeds as SeedTopic[];
 const assessments = assessmentSeeds as SeedAssessment[];
-const documents = documentSeeds as SeedDocument[];
+const documents = (documentSeeds as MaterialDocument[]).map((document) => ({
+  ...document,
+  source: "seed" as const,
+  storagePath: null,
+  uploadedAt: null,
+}));
 const conceptGraph = conceptGraphSeed as SeedConceptGraph;
 
 const disciplineColors: Record<string, string> = {
@@ -69,21 +74,21 @@ export function getCurriculumAssessment(id: string): SeedAssessment | null {
   return assessments.find((assessment) => assessment.id === id) ?? null;
 }
 
-export function getCurriculumDocuments(disciplineId?: string): SeedDocument[] {
+export function getCurriculumDocuments(disciplineId?: string): MaterialDocument[] {
   return documents
     .filter((document) => !disciplineId || document.disciplineId === disciplineId)
     .sort((left, right) => left.filename.localeCompare(right.filename));
 }
 
-export function getCurriculumDocument(id: string): SeedDocument | null {
+export function getCurriculumDocument(id: string): MaterialDocument | null {
   return documents.find((document) => document.id === id) ?? null;
 }
 
-export function getDocumentsForTopic(topicId: string): SeedDocument[] {
+export function getDocumentsForTopic(topicId: string): MaterialDocument[] {
   return documents.filter((document) => document.topicIds.includes(topicId));
 }
 
-export function getExerciseSourceDocuments(disciplineId?: string): SeedDocument[] {
+export function getExerciseSourceDocuments(disciplineId?: string): MaterialDocument[] {
   return getCurriculumDocuments(disciplineId).filter((document) => document.hasExercises);
 }
 
@@ -201,7 +206,7 @@ export function buildDisciplineNameMap(): Record<string, string> {
   );
 }
 
-export function getDocumentTopicNames(document: SeedDocument): string[] {
+export function getDocumentTopicNames(document: MaterialDocument): string[] {
   return document.topicIds
     .map((topicId) => getCurriculumTopic(topicId)?.name)
     .filter((topicName): topicName is string => Boolean(topicName));
@@ -209,7 +214,7 @@ export function getDocumentTopicNames(document: SeedDocument): string[] {
 
 export function groupDocumentsByDiscipline(): Array<{
   discipline: SeedDiscipline;
-  documents: SeedDocument[];
+  documents: MaterialDocument[];
 }> {
   return disciplines.map((discipline) => ({
     discipline,

@@ -4,14 +4,12 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   Plus,
   Trash2,
-  Edit3,
   Brain,
   BookOpen,
   Search,
   ChevronDown,
   Check,
   X,
-  Sparkles,
   RotateCcw,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -20,7 +18,6 @@ import {
   createNote,
   updateNote,
   deleteNote,
-  filterNotes,
 } from '@/lib/services/notes'
 import {
   getFlashcards,
@@ -28,21 +25,19 @@ import {
   createFlashcard,
   deleteFlashcard,
   reviewFlashcard,
-  filterFlashcards,
 } from '@/lib/services/flashcards'
 import { getOralQuestions } from '@/lib/services/oral-questions'
 import {
   getDisciplines,
   getAllTopics,
 } from '@/lib/services/disciplines'
+import { NotesWorkspace } from '@/components/notes/notes-workspace'
 import type {
   Note,
   Flashcard,
   OralQuestion,
   Discipline,
   Topic,
-  NoteFormat,
-  ContentStatus,
   FlashcardType,
 } from '@/lib/supabase'
 
@@ -58,279 +53,6 @@ interface FlashcardReviewState {
   cardIndex: number
   isFlipped: boolean
   results: Map<string, boolean>
-}
-
-// ─────────────────────────────────────────────────────────────────
-// NOTES TAB MODAL
-// ─────────────────────────────────────────────────────────────────
-
-function NotesModal({
-  note,
-  disciplines,
-  topics,
-  onSave,
-  onClose,
-}: {
-  note?: Note
-  disciplines: Discipline[]
-  topics: Topic[]
-  onSave: (data: Partial<Note>) => Promise<void>
-  onClose: () => void
-}) {
-  const [formData, setFormData] = useState({
-    title: note?.title ?? '',
-    topic_id: note?.topic_id ?? '',
-    discipline_id: note?.discipline_id ?? '',
-    content: note?.content ?? '',
-    format: (note?.format ?? 'free') as NoteFormat,
-    status: (note?.status ?? 'draft') as ContentStatus,
-    tags: note?.tags ?? [],
-    key_concepts: note?.key_concepts ?? [],
-  })
-
-  const [tagInput, setTagInput] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const handleAddTag = () => {
-    if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
-      setFormData({
-        ...formData,
-        tags: [...formData.tags, tagInput.trim()],
-      })
-      setTagInput('')
-    }
-  }
-
-  const handleRemoveTag = (tag: string) => {
-    setFormData({
-      ...formData,
-      tags: formData.tags.filter(t => t !== tag),
-    })
-  }
-
-  const handleSave = async () => {
-    if (!formData.title.trim() || !formData.content.trim() || !formData.topic_id) {
-      return
-    }
-
-    setLoading(true)
-    try {
-      await onSave({
-        title: formData.title,
-        content: formData.content,
-        topic_id: formData.topic_id,
-        discipline_id: formData.discipline_id,
-        format: formData.format,
-        status: formData.status,
-        tags: formData.tags,
-        key_concepts: formData.key_concepts,
-      })
-      onClose()
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const selectedDiscipline = disciplines.find(
-    d => d.id === formData.discipline_id
-  )
-  const filteredTopics = selectedDiscipline
-    ? topics.filter(t => t.discipline_id === selectedDiscipline.id)
-    : []
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-2xl rounded-md border border-border-default bg-bg-primary p-6 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-lg font-semibold text-fg-primary mb-4">
-          {note ? 'Editar Nota' : 'Nova Nota'}
-        </h2>
-
-        <div className="space-y-4">
-          {/* Discipline + Topic */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-medium text-fg-secondary block mb-1">
-                Disciplina
-              </label>
-              <select
-                value={formData.discipline_id}
-                onChange={e =>
-                  setFormData({
-                    ...formData,
-                    discipline_id: e.target.value,
-                    topic_id: '',
-                  })
-                }
-                className="w-full rounded-md border border-border-default bg-bg-surface px-3 py-2 text-sm text-fg-primary focus:border-accent-primary outline-none"
-              >
-                <option value="">Selecionar disciplina...</option>
-                {disciplines.map(d => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-fg-secondary block mb-1">
-                Tópico
-              </label>
-              <select
-                value={formData.topic_id}
-                onChange={e =>
-                  setFormData({ ...formData, topic_id: e.target.value })
-                }
-                className="w-full rounded-md border border-border-default bg-bg-surface px-3 py-2 text-sm text-fg-primary focus:border-accent-primary outline-none"
-              >
-                <option value="">Selecionar tópico...</option>
-                {filteredTopics.map(t => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Title */}
-          <div>
-            <label className="text-xs font-medium text-fg-secondary block mb-1">
-              Título
-            </label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={e =>
-                setFormData({ ...formData, title: e.target.value })
-              }
-              placeholder="Título da nota"
-              className="w-full rounded-md border border-border-default bg-bg-surface px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted focus:border-accent-primary outline-none"
-            />
-          </div>
-
-          {/* Content */}
-          <div>
-            <label className="text-xs font-medium text-fg-secondary block mb-1">
-              Conteúdo
-            </label>
-            <textarea
-              value={formData.content}
-              onChange={e =>
-                setFormData({ ...formData, content: e.target.value })
-              }
-              placeholder="Escreva o conteúdo da sua nota..."
-              rows={8}
-              className="w-full rounded-md border border-border-default bg-bg-surface px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted focus:border-accent-primary outline-none resize-none"
-            />
-          </div>
-
-          {/* Format + Status */}
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-medium text-fg-secondary block mb-1">
-                Formato
-              </label>
-              <select
-                value={formData.format}
-                onChange={e =>
-                  setFormData({ ...formData, format: e.target.value as NoteFormat })
-                }
-                className="w-full rounded-md border border-border-default bg-bg-surface px-3 py-2 text-sm text-fg-primary focus:border-accent-primary outline-none"
-              >
-                <option value="cornell">Cornell</option>
-                <option value="outline">Outline</option>
-                <option value="concept_map">Mapa Conceitual</option>
-                <option value="summary">Resumo</option>
-                <option value="free">Livre</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-medium text-fg-secondary block mb-1">
-                Status
-              </label>
-              <select
-                value={formData.status}
-                onChange={e =>
-                  setFormData({
-                    ...formData,
-                    status: e.target.value as ContentStatus,
-                  })
-                }
-                className="w-full rounded-md border border-border-default bg-bg-surface px-3 py-2 text-sm text-fg-primary focus:border-accent-primary outline-none"
-              >
-                <option value="draft">Rascunho</option>
-                <option value="review">Em revisão</option>
-                <option value="done">Pronto</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Tags */}
-          <div>
-            <label className="text-xs font-medium text-fg-secondary block mb-1">
-              Tags
-            </label>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={tagInput}
-                onChange={e => setTagInput(e.target.value)}
-                onKeyPress={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    handleAddTag()
-                  }
-                }}
-                placeholder="Adicionar tag e pressionar Enter..."
-                className="flex-1 rounded-md border border-border-default bg-bg-surface px-3 py-2 text-sm text-fg-primary placeholder:text-fg-muted focus:border-accent-primary outline-none"
-              />
-              <button
-                onClick={handleAddTag}
-                className="rounded-md border border-border-default bg-bg-surface px-3 py-2 text-sm text-fg-secondary hover:bg-bg-tertiary transition-colors"
-              >
-                +
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {formData.tags.map(tag => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center gap-1 rounded-md bg-accent-primary/20 px-2 py-1 text-xs text-accent-primary"
-                >
-                  {tag}
-                  <button
-                    onClick={() => handleRemoveTag(tag)}
-                    className="hover:text-accent-danger"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Actions */}
-        <div className="mt-6 flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="rounded-md border border-border-default px-4 py-2 text-sm text-fg-secondary hover:bg-bg-tertiary transition-colors"
-          >
-            Cancelar
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className="rounded-md bg-accent-primary px-4 py-2 text-sm text-white hover:bg-accent-primary/90 transition-colors disabled:opacity-50"
-          >
-            {loading ? 'Salvando...' : 'Salvar'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -689,25 +411,15 @@ export default function NotasPage() {
 
   // UI State
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
   const [toasts, setToasts] = useState<Toast[]>([])
 
-  // Modal state
-  const [noteModalOpen, setNoteModalOpen] = useState(false)
   const [flashcardModalOpen, setFlashcardModalOpen] = useState(false)
-  const [editingNote, setEditingNote] = useState<Note | undefined>()
 
   // Flashcard review mode
   const [reviewMode, setReviewMode] = useState(false)
 
   // Oral questions state
   const [expandedOralId, setExpandedOralId] = useState<string | null>(null)
-
-  // Filters
-  const [noteFilters, setNoteFilters] = useState({
-    format: 'all' as string,
-    status: 'all' as string,
-  })
 
   const [flashcardFilters, setFlashcardFilters] = useState({
     type: 'all' as string,
@@ -718,7 +430,6 @@ export default function NotasPage() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true)
-      setError(null)
 
       const [notesData, flashcardsData, dueData, oralData, disciplinesData, topicsData] =
         await Promise.all([
@@ -736,10 +447,7 @@ export default function NotasPage() {
       setOralQuestions(oralData)
       setDisciplines(disciplinesData)
       setTopics(topicsData)
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Erro ao carregar dados'
-      )
+    } catch {
       showToast('Erro ao carregar dados', 'error')
     } finally {
       setLoading(false)
@@ -762,34 +470,39 @@ export default function NotasPage() {
 
   // ─── Notes CRUD ───────────────────────────────────────────────
 
-  const handleCreateOrUpdateNote = async (data: Partial<Note>) => {
-    try {
-      if (editingNote) {
-        await updateNote(editingNote.id, data)
-        showToast('Nota atualizada com sucesso!')
-      } else {
-        const newNote = await createNote({
-          topic_id: data.topic_id!,
-          discipline_id: data.discipline_id!,
-          title: data.title!,
-          content: data.content!,
-          format: data.format,
-          status: data.status,
-          tags: data.tags,
-          key_concepts: data.key_concepts,
-        })
-        setNotes(prev => [newNote, ...prev])
-        showToast('Nota criada com sucesso!')
-      }
-      setEditingNote(undefined)
-      setNoteModalOpen(false)
-      await loadData()
-    } catch (err) {
-      showToast(
-        err instanceof Error ? err.message : 'Erro ao salvar nota',
-        'error'
-      )
+  const handleSaveNote = async (
+    data: Partial<Note> & { id?: string }
+  ): Promise<Note> => {
+    let saved: Note
+
+    if (data.id) {
+      saved = await updateNote(data.id, {
+        title: data.title,
+        content: data.content,
+        format: data.format,
+        status: data.status,
+        key_concepts: data.key_concepts,
+        linked_topics: data.linked_topics,
+        tags: data.tags,
+      })
+      showToast('Nota atualizada com sucesso!')
+    } else {
+      saved = await createNote({
+        topic_id: data.topic_id!,
+        discipline_id: data.discipline_id!,
+        title: data.title!,
+        content: data.content!,
+        format: data.format,
+        status: data.status,
+        tags: data.tags,
+        key_concepts: data.key_concepts,
+        ai_generated: data.ai_generated,
+      })
+      showToast('Nota criada com sucesso!')
     }
+
+    await loadData()
+    return saved
   }
 
   const handleDeleteNote = async (noteId: string) => {
@@ -847,33 +560,6 @@ export default function NotasPage() {
   }
 
   // ─── Filtering ───────────────────────────────────────────────
-
-  const filteredNotes = useMemo(() => {
-    let result = notes
-
-    if (disciplineFilter !== 'all') {
-      result = result.filter(n => n.discipline_id === disciplineFilter)
-    }
-
-    if (noteFilters.format !== 'all') {
-      result = result.filter(n => n.format === noteFilters.format)
-    }
-
-    if (noteFilters.status !== 'all') {
-      result = result.filter(n => n.status === noteFilters.status)
-    }
-
-    if (search) {
-      const q = search.toLowerCase()
-      result = result.filter(
-        n =>
-          n.title.toLowerCase().includes(q) ||
-          n.content.toLowerCase().includes(q)
-      )
-    }
-
-    return result
-  }, [notes, disciplineFilter, noteFilters, search])
 
   const filteredFlashcards = useMemo(() => {
     let result = flashcards
@@ -949,16 +635,18 @@ export default function NotasPage() {
 
       {/* Global Filters */}
       <div className="flex items-center gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-fg-muted" />
-          <input
-            type="text"
-            placeholder="Buscar..."
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="w-full rounded-md border border-border-default bg-bg-surface px-3 py-2 pl-9 text-sm text-fg-primary placeholder:text-fg-muted focus:border-accent-primary outline-none"
-          />
-        </div>
+        {tab !== 'notas' && (
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-fg-muted" />
+            <input
+              type="text"
+              placeholder="Buscar..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full rounded-md border border-border-default bg-bg-surface px-3 py-2 pl-9 text-sm text-fg-primary placeholder:text-fg-muted focus:border-accent-primary outline-none"
+            />
+          </div>
+        )}
 
         <div className="flex gap-2">
           {disciplines.map(d => (
@@ -1030,155 +718,17 @@ export default function NotasPage() {
       <div className="flex-1 overflow-hidden">
         {/* NOTAS TAB */}
         {tab === 'notas' && (
-          <div className="flex flex-col h-full gap-3">
-            {/* Filters */}
-            <div className="flex items-center gap-2">
-              <select
-                value={noteFilters.format}
-                onChange={e =>
-                  setNoteFilters({ ...noteFilters, format: e.target.value })
-                }
-                className="text-xs rounded-md border border-border-default bg-bg-surface px-2 py-1 text-fg-secondary focus:border-accent-primary outline-none"
-              >
-                <option value="all">Todos os formatos</option>
-                <option value="cornell">Cornell</option>
-                <option value="outline">Outline</option>
-                <option value="concept_map">Mapa Conceitual</option>
-                <option value="summary">Resumo</option>
-                <option value="free">Livre</option>
-              </select>
-
-              <select
-                value={noteFilters.status}
-                onChange={e =>
-                  setNoteFilters({ ...noteFilters, status: e.target.value })
-                }
-                className="text-xs rounded-md border border-border-default bg-bg-surface px-2 py-1 text-fg-secondary focus:border-accent-primary outline-none"
-              >
-                <option value="all">Todos os status</option>
-                <option value="draft">Rascunho</option>
-                <option value="review">Em revisão</option>
-                <option value="done">Pronto</option>
-              </select>
-
-              <button
-                onClick={() => {
-                  setEditingNote(undefined)
-                  setNoteModalOpen(true)
-                }}
-                className="ml-auto flex items-center gap-2 rounded-md bg-accent-primary px-3 py-2 text-xs font-medium text-white hover:bg-accent-primary/90 transition-colors"
-              >
-                <Plus className="h-4 w-4" />
-                Nova Nota
-              </button>
-            </div>
-
-            {/* Notes Grid */}
-            <div className="flex-1 overflow-y-auto">
-              {filteredNotes.length === 0 ? (
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <BookOpen className="h-12 w-12 text-fg-muted/30 mx-auto mb-2" />
-                    <p className="text-sm text-fg-tertiary">
-                      Nenhuma nota encontrada
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-3 pr-3">
-                  {filteredNotes.map(note => (
-                    <div
-                      key={note.id}
-                      className="rounded-md border border-border-default bg-bg-surface p-4 hover:border-accent-primary/30 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div className="flex-1">
-                          <h3 className="font-semibold text-sm text-fg-primary line-clamp-1">
-                            {note.title}
-                          </h3>
-                          <p className="text-xs text-fg-tertiary">
-                            {
-                              disciplines.find(
-                                d => d.id === note.discipline_id
-                              )?.name
-                            }
-                          </p>
-                        </div>
-                        <span className="text-xs text-fg-muted">
-                          {note.format}
-                        </span>
-                      </div>
-
-                      <p className="text-xs text-fg-secondary line-clamp-2 mb-2">
-                        {note.content.slice(0, 100)}...
-                      </p>
-
-                      <div className="flex items-center justify-between mb-3">
-                        <span
-                          className={cn(
-                            'text-xs px-2 py-1 rounded',
-                            note.status === 'draft'
-                              ? 'bg-fg-muted/10 text-fg-muted'
-                              : note.status === 'review'
-                                ? 'bg-accent-warning/10 text-accent-warning'
-                                : 'bg-accent-success/10 text-accent-success'
-                          )}
-                        >
-                          {note.status === 'draft'
-                            ? 'Rascunho'
-                            : note.status === 'review'
-                              ? 'Em revisão'
-                              : 'Pronto'}
-                        </span>
-                        <span className="text-xs text-fg-muted">
-                          {new Date(note.updated_at).toLocaleDateString(
-                            'pt-BR'
-                          )}
-                        </span>
-                      </div>
-
-                      {note.tags.length > 0 && (
-                        <div className="flex gap-1 mb-3 flex-wrap">
-                          {note.tags.slice(0, 2).map(tag => (
-                            <span
-                              key={tag}
-                              className="text-xs bg-bg-tertiary text-fg-muted px-1.5 py-0.5 rounded"
-                            >
-                              #{tag}
-                            </span>
-                          ))}
-                          {note.tags.length > 2 && (
-                            <span className="text-xs text-fg-muted">
-                              +{note.tags.length - 2}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => {
-                            setEditingNote(note)
-                            setNoteModalOpen(true)
-                          }}
-                          className="flex-1 flex items-center justify-center gap-1 text-xs border border-border-default rounded px-2 py-1 text-fg-secondary hover:bg-bg-tertiary transition-colors"
-                        >
-                          <Edit3 className="h-3 w-3" />
-                          Editar
-                        </button>
-                        <button
-                          onClick={() => handleDeleteNote(note.id)}
-                          className="flex items-center justify-center text-xs border border-accent-danger/30 rounded px-2 py-1 text-accent-danger hover:bg-accent-danger/10 transition-colors"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+          <NotesWorkspace
+            notes={notes}
+            disciplines={disciplines}
+            topics={topics}
+            preferredDisciplineId={disciplineFilter}
+            search={search}
+            onSearchChange={setSearch}
+            onSaveNote={handleSaveNote}
+            onDeleteNote={handleDeleteNote}
+            onToast={showToast}
+          />
         )}
 
         {/* FLASHCARDS TAB */}
@@ -1446,21 +996,6 @@ export default function NotasPage() {
           </div>
         )}
       </div>
-
-      {/* Modals */}
-      {noteModalOpen && (
-        <NotesModal
-          note={editingNote}
-          disciplines={disciplines}
-          topics={topics}
-          onSave={handleCreateOrUpdateNote}
-          onClose={() => {
-            setNoteModalOpen(false)
-            setEditingNote(undefined)
-          }}
-        />
-      )}
-
       {flashcardModalOpen && (
         <FlashcardModal
           disciplines={disciplines}

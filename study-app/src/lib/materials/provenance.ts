@@ -1,17 +1,18 @@
-import type { SeedDocument } from "@/lib/materials/types";
+import type { MaterialDocument } from "@/lib/materials/types";
 
-export function getMaterialTags(document: SeedDocument): string[] {
+export function getMaterialTags(document: MaterialDocument): string[] {
   return [
-    "fonte-oficial",
+    document.source === "custom" ? "material-personalizado" : "fonte-oficial",
     `material:${document.id}`,
     `tipo:${document.type}`,
   ];
 }
 
-export function prependMaterialHeader(content: string, document: SeedDocument): string {
+export function prependMaterialHeader(content: string, document: MaterialDocument): string {
   return [
-    `Fonte oficial: ${document.filename}`,
+    `Fonte do material: ${document.filename}`,
     `Documento: ${document.id}`,
+    `Origem: ${document.source === "custom" ? "adicionado manualmente na plataforma" : "catálogo oficial"}`,
     `Tipo: ${document.type}`,
     "",
     content,

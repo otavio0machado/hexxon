@@ -2,22 +2,31 @@ import "server-only";
 
 import fs from "node:fs";
 import path from "node:path";
+import { unstable_noStore as noStore } from "next/cache";
 import extractsJson from "@/data/materials/document-extracts.json";
 import {
   documentExtractToMap,
   getCurriculumDiscipline,
+  getCurriculumDisciplines,
   getCurriculumDocument,
+  getCurriculumDocuments,
   getCurriculumTopic,
   getDocumentTopicNames,
 } from "@/lib/materials/catalog";
-import type { DocumentExtract } from "@/lib/materials/types";
+import { readCustomMaterialDocuments } from "@/lib/materials/custom";
+import type { DocumentExtract, MaterialDocument } from "@/lib/materials/types";
 
 const extractMap = documentExtractToMap(extractsJson as DocumentExtract[]);
 
-function resolveDocumentPath(filename: string): string | null {
+function resolveDocumentPath(relativeOrFilename?: string | null): string | null {
+  if (!relativeOrFilename) {
+    return null;
+  }
+
   const candidates = [
-    path.resolve(process.cwd(), "Documentos", filename),
-    path.resolve(process.cwd(), "..", "Documentos", filename),
+    path.resolve(process.cwd(), relativeOrFilename),
+    path.resolve(process.cwd(), "Documentos", relativeOrFilename),
+    path.resolve(process.cwd(), "..", "Documentos", relativeOrFilename),
   ];
 
   for (const candidate of candidates) {
@@ -29,19 +38,105 @@ function resolveDocumentPath(filename: string): string | null {
   return null;
 }
 
+function sortMaterialDocuments(left: MaterialDocument, right: MaterialDocument): number {
+  if (left.source !== right.source) {
+    return left.source === "custom" ? -1 : 1;
+  }
+
+  if (left.source === "custom" && right.source === "custom") {
+    return (right.uploadedAt ?? "").localeCompare(left.uploadedAt ?? "");
+  }
+
+  return left.filename.localeCompare(right.filename, "pt-BR");
+}
+
+function resolveMaterialFilePath(document: MaterialDocument): string | null {
+  return resolveDocumentPath(document.storagePath) ?? resolveDocumentPath(document.filename);
+}
+
 export function getMaterialExtract(documentId: string): DocumentExtract | null {
   return extractMap.get(documentId) ?? null;
 }
 
-export function buildMaterialSourceContent(documentId: string): {
+export async function listCustomMaterialDocuments(disciplineId?: string): Promise<MaterialDocument[]> {
+  noStore();
+
+  const documents = await readCustomMaterialDocuments();
+  return documents
+    .filter((document) => !disciplineId || document.disciplineId === disciplineId)
+    .sort(sortMaterialDocuments);
+}
+
+export async function listMaterialDocuments(disciplineId?: string): Promise<MaterialDocument[]> {
+  noStore();
+
+  const seedDocuments = getCurriculumDocuments(disciplineId);
+  const customDocuments = await listCustomMaterialDocuments(disciplineId);
+
+  return [...seedDocuments, ...customDocuments].sort(sortMaterialDocuments);
+}
+
+export async function listExerciseSourceDocuments(
+  disciplineId?: string,
+): Promise<MaterialDocument[]> {
+  const documents = await listMaterialDocuments(disciplineId);
+  return documents.filter((document) => document.hasExercises);
+}
+
+export async function groupMaterialDocumentsByDiscipline(): Promise<
+  Array<{
+    discipline: ReturnType<typeof getCurriculumDisciplines>[number];
+    documents: MaterialDocument[];
+  }>
+> {
+  const allDocuments = await listMaterialDocuments();
+
+  return getCurriculumDisciplines().map((discipline) => ({
+    discipline,
+    documents: allDocuments
+      .filter((document) => document.disciplineId === discipline.id)
+      .sort(sortMaterialDocuments),
+  }));
+}
+
+export async function getMaterialDocument(documentId: string): Promise<MaterialDocument | null> {
+  noStore();
+
+  const seedDocument = getCurriculumDocument(documentId);
+  if (seedDocument) {
+    return seedDocument;
+  }
+
+  const customDocuments = await readCustomMaterialDocuments();
+  return customDocuments.find((document) => document.id === documentId) ?? null;
+}
+
+export async function getMaterialFileAsset(documentId: string): Promise<{
+  document: MaterialDocument;
+  filePath: string;
+} | null> {
+  const document = await getMaterialDocument(documentId);
+  if (!document) {
+    return null;
+  }
+
+  const filePath = resolveMaterialFilePath(document);
+  if (!filePath) {
+    return null;
+  }
+
+  return { document, filePath };
+}
+
+export async function buildMaterialSourceContent(documentId: string): Promise<{
   documentId: string;
   disciplineName: string;
   topicNames: string[];
   content: string;
   fileAvailable: boolean;
   filename: string;
-} {
-  const document = getCurriculumDocument(documentId);
+}> {
+  const document = await getMaterialDocument(documentId);
   if (!document) {
     throw new Error("Documento não encontrado");
   }
@@ -49,12 +144,13 @@ export function buildMaterialSourceContent(documentId: string): {
   const discipline = getCurriculumDiscipline(document.disciplineId);
   const extract = getMaterialExtract(documentId);
   const topicNames = getDocumentTopicNames(document);
-  const fileAvailable = Boolean(resolveDocumentPath(document.filename));
+  const fileAvailable = Boolean(resolveMaterialFilePath(document));
   const preview = extract?.preview?.trim();
 
   const content = [
     `Documento: ${document.filename}`,
     `Disciplina: ${discipline?.name ?? document.disciplineId}`,
+    `Origem: ${document.source === "custom" ? "adicionado manualmente na plataforma" : "catálogo oficial"}`,
     `Tipo: ${document.type}`,
     `Relevância: ${document.relevance}`,
     `Tópicos cobertos: ${topicNames.join(", ") || "geral da disciplina"}`,
@@ -73,8 +169,8 @@ export function buildMaterialSourceContent(documentId: string): {
   };
 }
 
-export function getMaterialDocumentView(documentId: string) {
-  const document = getCurriculumDocument(documentId);
+export async function getMaterialDocumentView(documentId: string) {
+  const document = await getMaterialDocument(documentId);
   if (!document) {
     return null;
   }
@@ -99,6 +195,7 @@ export function getMaterialDocumentView(documentId: string) {
     topicNames: topicDetails.map((topic) => topic.name),
     topicDetails,
     extract: getMaterialExtract(document.id),
-    fileAvailable: Boolean(resolveDocumentPath(document.filename)),
+    fileAvailable: Boolean(resolveMaterialFilePath(document)),
+    fileUrl: `/api/materials/file/${document.id}`,
   };
 }
