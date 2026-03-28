@@ -61,7 +61,7 @@ interface JarvisChatProps {
   onConversationUpdated?: (id: string, title: string) => void
 }
 
-const SUGGESTIONS = [
+const STATIC_SUGGESTIONS = [
   { icon: Zap, text: 'Me dê o briefing do dia', tag: 'Briefing diário' },
   { icon: Calendar, text: 'Preciso tirar 8 na próxima prova. Cria a missão completa.', tag: 'Mission Mode' },
   { icon: GitBranch, text: 'Qual o caminho mais rápido pra dominar limites?', tag: 'Learning Path' },
@@ -71,6 +71,32 @@ const SUGGESTIONS = [
   { icon: Layers, text: 'O que preciso revisar hoje pra não esquecer?', tag: 'Forgetting Curve' },
   { icon: Play, text: 'Simula a prova pra eu treinar sob pressão', tag: 'Battle Mode' },
 ]
+
+function getContextualSuggestions(alerts: Array<{ type: string; title: string; data?: Record<string, unknown> }>) {
+  const contextual: typeof STATIC_SUGGESTIONS = []
+
+  for (const alert of alerts.slice(0, 3)) {
+    if (alert.type === 'readiness_alert') {
+      const examName = alert.title.split('—')[0].trim()
+      contextual.push({ icon: Calendar, text: `Prepara um plano de estudo para "${examName}"`, tag: 'Prova próxima' })
+    } else if (alert.type === 'weakness_pattern') {
+      contextual.push({ icon: Dumbbell, text: `Gera exercícios focados nos meus erros de ${alert.data?.category ?? 'conceito'}`, tag: 'Remediar erros' })
+    } else if (alert.type === 'flashcard_decay') {
+      contextual.push({ icon: Layers, text: `Quais flashcards devo revisar agora?`, tag: `${alert.data?.dueCount ?? ''} vencidos` })
+    } else if (alert.type === 'streak_alert') {
+      contextual.push({ icon: Zap, text: 'Me sugere uma sessão rápida de 10 minutos', tag: 'Manter streak' })
+    }
+  }
+
+  // Fill remaining slots with static suggestions (avoid duplicates)
+  const used = new Set(contextual.map(s => s.tag))
+  for (const s of STATIC_SUGGESTIONS) {
+    if (contextual.length >= 8) break
+    if (!used.has(s.tag)) contextual.push(s)
+  }
+
+  return contextual
+}
 
 // Icon map for post-action buttons
 const POST_ACTION_ICONS: Record<string, LucideIcon> = {
@@ -275,6 +301,18 @@ export function JarvisChat({
   const [activeConvId, setActiveConvId] = useState<string | null>(externalConversationId ?? null)
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [lastFailedInput, setLastFailedInput] = useState<string | null>(null)
+  const [thinkingTool, setThinkingTool] = useState<string | null>(null)
+  const [jarvisAlerts, setJarvisAlerts] = useState<Array<{ type: string; title: string; data?: Record<string, unknown> }>>([])
+
+  // Fetch alerts for contextual suggestions
+  useEffect(() => {
+    fetch('/api/jarvis/insights')
+      .then(r => r.ok ? r.json() : { insights: [] })
+      .then(d => setJarvisAlerts(d.insights ?? []))
+      .catch(() => {})
+  }, [])
+
+  const SUGGESTIONS = useMemo(() => getContextualSuggestions(jarvisAlerts), [jarvisAlerts])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -437,12 +475,16 @@ export function JarvisChat({
         } else if (line.startsWith('data: ') && eventType) {
           try {
             const data = JSON.parse(line.slice(6))
-            if (eventType === 'delta') {
+            if (eventType === 'tool_start') {
+              setThinkingTool(data.name)
+            } else if (eventType === 'delta') {
+              setThinkingTool(null)
               streamedContent += data.text
               setMessages((prev) => prev.map(m =>
                 m.id === assistantMsgId ? { ...m, content: streamedContent } : m
               ))
             } else if (eventType === 'tool_results') {
+              setThinkingTool(null)
               toolResults = data
               setMessages((prev) => prev.map(m =>
                 m.id === assistantMsgId ? { ...m, toolResults: data } : m
@@ -945,7 +987,9 @@ export function JarvisChat({
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-bg-secondary border border-border-default">
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-chat-blue-loader" />
-                  <span className="text-xs text-fg-tertiary">Pensando...</span>
+                  <span className="text-xs text-fg-tertiary">
+                    {thinkingTool ? `Executando: ${thinkingTool}...` : 'Pensando...'}
+                  </span>
                 </div>
               </div>
             )}

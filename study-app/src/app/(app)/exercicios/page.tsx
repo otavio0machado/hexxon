@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import {
   getExercises,
   createExercise,
@@ -29,6 +30,7 @@ import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Spinner } from '@/components/ui/spinner'
 import { EmptyState } from '@/components/ui/empty-state'
+import { JarvisTip } from '@/components/jarvis/jarvis-tip'
 
 type FilterDifficulty = "all" | "1" | "2" | "3" | "4" | "5";
 type FilterType = "all" | "multiple_choice" | "open_ended" | "proof" | "computation";
@@ -62,7 +64,16 @@ interface AIGenerationState {
   isLoading: boolean;
 }
 
+const masteryLabels: Record<string, string> = {
+  none: "Nenhum",
+  exposed: "Exposto",
+  developing: "Em desenvolvimento",
+  proficient: "Proficiente",
+  mastered: "Dominado",
+};
+
 export default function ExerciciosPage() {
+  const router = useRouter();
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [topics, setTopics] = useState<Map<string, Topic>>(new Map());
   const [disciplines, setDisciplines] = useState<Map<string, Discipline>>(new Map());
@@ -150,6 +161,15 @@ export default function ExerciciosPage() {
           0
         ) / Array.from(attempts.values()).reduce((sum, arr) => sum + arr.length, 0)
       : 0;
+
+  // Selected topic for low-mastery tip
+  const selectedTopic = useMemo(() => {
+    if (filterTopic === "all") return null;
+    return topics.get(filterTopic) ?? null;
+  }, [filterTopic, topics]);
+
+  const showLowMasteryTip = selectedTopic != null &&
+    (selectedTopic.mastery === "none" || selectedTopic.mastery === "exposed");
 
   const handleStartPractice = useCallback((exercise: Exercise) => {
     setPracticeState({
@@ -486,6 +506,16 @@ export default function ExerciciosPage() {
           ))}
         </div>
       </div>
+
+      {/* Jarvis low-mastery tip */}
+      {showLowMasteryTip && selectedTopic && (
+        <JarvisTip
+          message={`Jarvis sugere: revisar o tópico "${selectedTopic.name}" antes de praticar exercícios. Mastery atual: ${masteryLabels[selectedTopic.mastery] ?? selectedTopic.mastery}.`}
+          actionLabel="Revisar agora"
+          onAction={() => router.push("/jarvis")}
+          variant="warning"
+        />
+      )}
 
       {/* Exercises grouped by topic */}
       {grouped.size === 0 ? (

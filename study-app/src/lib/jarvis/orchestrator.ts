@@ -469,6 +469,7 @@ export async function orchestrateStream(
   onToolResults: (results: ToolResult[]) => void,
   onPostActions: (actions: PostAction[]) => void,
   onMeta: (meta: JarvisMessage['meta']) => void,
+  onToolStart?: (info: { name: string; description: string }) => void,
 ): Promise<void> {
   const systemPrompt = await buildSystemPrompt(context)
   const providerTools = toProviderTools()
@@ -524,6 +525,7 @@ export async function orchestrateStream(
 
   if (response.toolCalls && response.toolCalls.length > 0) {
     for (const tc of response.toolCalls) {
+      onToolStart?.({ name: tc.name, description: `Executando: ${tc.name}` })
       const result = await executeTool(tc.name, tc.arguments, tc.id, context)
       toolResults.push(result)
     }

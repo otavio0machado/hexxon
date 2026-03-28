@@ -1578,6 +1578,70 @@ const tools: ToolDefinition[] = [
       }
     },
   },
+
+  // ── Task Management Tools ──────────────────────────────────
+
+  {
+    name: 'createTask',
+    description: 'Cria uma tarefa no calendário do aluno. Use para qualquer compromisso, lembrete ou atividade.',
+    category: 'sessions',
+    parameters: {
+      title: { type: 'string', description: 'Título da tarefa' },
+      date: { type: 'string', description: 'Data no formato YYYY-MM-DD' },
+      description: { type: 'string', description: 'Descrição detalhada (markdown)' },
+      start_time: { type: 'string', description: 'Horário de início HH:MM' },
+      end_time: { type: 'string', description: 'Horário de fim HH:MM' },
+      priority: { type: 'string', description: 'Prioridade: low, medium, high', enum: ['low', 'medium', 'high'] },
+    },
+    required: ['title', 'date'],
+    execute: async (params: Record<string, unknown>) => {
+      try {
+        const { createTask } = await import('@/lib/services/tasks')
+        const task = await createTask({
+          title: params.title as string,
+          date: params.date as string,
+          description: params.description as string | undefined,
+          start_time: params.start_time as string | undefined,
+          end_time: params.end_time as string | undefined,
+          priority: (params.priority as 'low' | 'medium' | 'high') ?? 'medium',
+        })
+        return makeResult('', true, `Tarefa "${task.title}" criada para ${task.date}${task.start_time ? ` às ${task.start_time}` : ''}.`, { taskId: task.id })
+      } catch (e) {
+        return makeResult('', false, `Erro ao criar tarefa: ${(e as Error).message}`)
+      }
+    },
+  },
+  {
+    name: 'listTasks',
+    description: 'Lista tarefas do calendário do aluno. Pode filtrar por data ou range.',
+    category: 'sessions',
+    parameters: {
+      date: { type: 'string', description: 'Data específica YYYY-MM-DD' },
+      range_days: { type: 'number', description: 'Próximos N dias a partir de hoje' },
+    },
+    required: [],
+    execute: async (params: Record<string, unknown>) => {
+      try {
+        const { getTasksByDate, getTasksByRange, getTasks } = await import('@/lib/services/tasks')
+        let tasks
+        if (params.date) {
+          tasks = await getTasksByDate(params.date as string)
+        } else if (params.range_days) {
+          const start = new Date().toISOString().split('T')[0]
+          const end = new Date(Date.now() + (params.range_days as number) * 86400000).toISOString().split('T')[0]
+          tasks = await getTasksByRange(start, end)
+        } else {
+          tasks = await getTasks(50)
+        }
+        const summary = tasks.map(t =>
+          `${t.is_completed ? '✅' : '⬜'} ${t.date}${t.start_time ? ` ${t.start_time}` : ''} — ${t.title}${t.priority === 'high' ? ' 🔴' : ''}`
+        ).join('\n') || 'Nenhuma tarefa encontrada.'
+        return makeResult('', true, `${tasks.length} tarefa(s):\n${summary}`, { tasks })
+      } catch (e) {
+        return makeResult('', false, `Erro: ${(e as Error).message}`)
+      }
+    },
+  },
 ]
 
 // ── Registry ────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -18,6 +19,7 @@ import { Select } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { EmptyState } from '@/components/ui/empty-state'
+import { JarvisTip } from '@/components/jarvis/jarvis-tip'
 
 type FilterType = "all" | "prova" | "trabalho" | "ps" | "g2";
 type FilterStatus = "all" | "upcoming" | "ready" | "completed";
@@ -55,6 +57,7 @@ interface ScoreInputState {
 }
 
 export default function ProvasPage() {
+  const router = useRouter();
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [disciplines, setDisciplines] = useState<Map<string, Discipline>>(new Map());
   const [filterType, setFilterType] = useState<FilterType>("all");
@@ -115,6 +118,26 @@ export default function ProvasPage() {
     if (!grouped.has(key)) grouped.set(key, []);
     grouped.get(key)!.push(a);
   });
+
+  // Detect upcoming exam within 7 days for Jarvis tip
+  const upcomingExamSoon = useMemo(() => {
+    const now = Date.now();
+    const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+    return assessments
+      .filter((a) => {
+        if (a.status !== "upcoming") return false;
+        const diff = new Date(a.date).getTime() - now;
+        return diff > 0 && diff <= sevenDaysMs;
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0] ?? null;
+  }, [assessments]);
+
+  const daysUntilExam = upcomingExamSoon
+    ? Math.ceil(
+        (new Date(upcomingExamSoon.date).getTime() - Date.now()) /
+          (1000 * 60 * 60 * 24)
+      )
+    : null;
 
   const handleSaveScore = useCallback(
     async (assessmentId: string) => {
@@ -351,6 +374,16 @@ export default function ProvasPage() {
           </div>
         )}
       </div>
+
+      {/* Jarvis upcoming exam tip */}
+      {upcomingExamSoon && daysUntilExam !== null && (
+        <JarvisTip
+          message={`Você tem uma prova em ${daysUntilExam} dia${daysUntilExam !== 1 ? "s" : ""}: "${upcomingExamSoon.name}". Que tal preparar um plano de estudo?`}
+          actionLabel="Preparar plano"
+          onAction={() => router.push("/jarvis")}
+          variant={daysUntilExam <= 3 ? "warning" : "default"}
+        />
+      )}
 
       {/* Assessments grouped by discipline */}
       {grouped.size === 0 ? (

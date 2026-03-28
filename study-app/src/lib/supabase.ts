@@ -225,6 +225,31 @@ export interface StudySession {
   created_at: string
 }
 
+// ── Tasks ──────────────────────────────────────────────────
+
+export type TaskPriority = 'low' | 'medium' | 'high'
+
+export interface TaskAttachment {
+  type: 'image' | 'code' | 'link' | 'file'
+  url?: string
+  content?: string
+  label?: string
+}
+
+export interface Task {
+  id: string
+  title: string
+  description: string | null
+  date: string                        // YYYY-MM-DD
+  start_time: string | null           // HH:MM
+  end_time: string | null             // HH:MM
+  is_completed: boolean
+  priority: TaskPriority
+  discipline_id: string | null
+  attachments: TaskAttachment[]
+  created_at: string
+}
+
 export interface AiUsageLog {
   id: string
   service: string

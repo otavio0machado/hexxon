@@ -8,12 +8,11 @@ import {
   BookOpen,
   Search,
   ChevronDown,
-  Check,
-  X,
   RotateCcw,
   Mic,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useToast } from '@/components/ui/toast'
 import {
   getNotes,
   createNote,
@@ -50,12 +49,6 @@ import type {
 } from '@/lib/supabase'
 
 type TabView = 'notas' | 'flashcards' | 'oral'
-
-interface Toast {
-  id: string
-  message: string
-  type: 'success' | 'error'
-}
 
 interface FlashcardReviewState {
   cardIndex: number
@@ -421,7 +414,7 @@ export default function NotasPage() {
 
   // UI State
   const [loading, setLoading] = useState(true)
-  const [toasts, setToasts] = useState<Toast[]>([])
+  const toast = useToast()
 
   const [flashcardModalOpen, setFlashcardModalOpen] = useState(false)
 
@@ -473,15 +466,15 @@ export default function NotasPage() {
     loadData()
   }, [loadData])
 
-  // ─── Toast ───────────────────────────────────────────────────
+  // ─── Toast (delegates to global ToastProvider) ──────────────
 
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    const id = Math.random().toString(36).slice(2)
-    setToasts(prev => [...prev, { id, message, type }])
-    setTimeout(() => {
-      setToasts(prev => prev.filter(t => t.id !== id))
-    }, 3000)
-  }
+  const showToast = useCallback(
+    (message: string, type: 'success' | 'error' = 'success') => {
+      if (type === 'error') toast.error(message)
+      else toast.success(message)
+    },
+    [toast],
+  )
 
   // ─── Notes CRUD ───────────────────────────────────────────────
 
@@ -1033,28 +1026,6 @@ export default function NotasPage() {
           onClose={() => setFlashcardModalOpen(false)}
         />
       )}
-
-      {/* Toast Notifications */}
-      <div className="fixed bottom-4 right-4 z-40 space-y-2 max-w-sm">
-        {toasts.map(toast => (
-          <div
-            key={toast.id}
-            className={cn(
-              'rounded-lg px-4 py-3 text-sm font-medium flex items-center gap-2 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300',
-              toast.type === 'success'
-                ? 'bg-accent-success/20 text-accent-success border border-accent-success/30'
-                : 'bg-accent-danger/20 text-accent-danger border border-accent-danger/30'
-            )}
-          >
-            {toast.type === 'success' ? (
-              <Check className="h-4 w-4 shrink-0" />
-            ) : (
-              <X className="h-4 w-4 shrink-0" />
-            )}
-            {toast.message}
-          </div>
-        ))}
-      </div>
 
       <ConfirmModal
         open={!!confirmDialog}

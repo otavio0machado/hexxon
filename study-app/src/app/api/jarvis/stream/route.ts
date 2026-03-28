@@ -65,6 +65,8 @@ export async function POST(request: Request) {
             (actions) => send('post_actions', actions),
             // onMeta
             (meta) => send('meta', meta),
+            // onToolStart
+            (info) => send('tool_start', info),
           )
           send('done', {})
         } catch (error) {
