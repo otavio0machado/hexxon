@@ -265,7 +265,7 @@ export function JarvisChat({
 }: JarvisChatProps) {
   const toast = useToast()
   const [messages, setMessages] = useState<JarvisMessage[]>([])
-  const [currentModel, setCurrentModel] = useState<ModelId>('claude-sonnet-4-6')
+  const [currentModel, setCurrentModel] = useState<ModelId>('auto')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [inputValue, setInputValue] = useState('')
@@ -274,6 +274,7 @@ export function JarvisChat({
   const [expandedMixSources, setExpandedMixSources] = useState<Set<string>>(new Set())
   const [activeConvId, setActiveConvId] = useState<string | null>(externalConversationId ?? null)
   const [loadingHistory, setLoadingHistory] = useState(false)
+  const [lastFailedInput, setLastFailedInput] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -362,15 +363,18 @@ export function JarvisChat({
       const allMessages = [...messages, userMsg]
 
       // Try streaming first (Anthropic models), fall back to regular
-      const useStreaming = currentModel !== 'mix' && currentModel.startsWith('claude')
+      const resolvedModel = currentModel === 'auto' ? 'claude-sonnet-4-6' : currentModel
+      const useStreaming = resolvedModel !== 'mix' && (resolvedModel.startsWith('claude') || currentModel === 'auto')
 
       if (useStreaming) {
         await sendStreamingRequest(allMessages, convId)
       } else {
         await sendRegularRequest(allMessages, convId)
       }
+      setLastFailedInput(null)
     } catch (err) {
       setError((err as Error).message)
+      setLastFailedInput(content)
     } finally {
       setIsLoading(false)
       inputRef.current?.focus()
@@ -626,25 +630,27 @@ export function JarvisChat({
 
           {expandedModelDropdown && (
             <div className="absolute top-full left-0 mt-1 w-64 bg-bg-secondary border border-border-default rounded-lg shadow-xl z-50 overflow-hidden">
-              {/* Mix */}
+              {/* Auto (recommended) */}
               <button
-                onClick={() => { setCurrentModel('mix'); setExpandedModelDropdown(false) }}
-                className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors ${
-                  currentModel === 'mix' ? 'bg-chat-blue-bg text-chat-blue-accent' : 'text-fg-primary hover:bg-bg-tertiary'
+                onClick={() => { setCurrentModel('auto'); setExpandedModelDropdown(false) }}
+                className={`w-full text-left px-3 py-2.5 text-xs flex items-center gap-2 transition-colors ${
+                  currentModel === 'auto' ? 'bg-chat-blue-bg text-chat-blue-accent' : 'text-fg-primary hover:bg-bg-tertiary'
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                <span className="font-medium">Mix (Multi-IA)</span>
-                <span className="ml-auto text-fg-muted">Combina respostas</span>
+                <div className="flex-1">
+                  <span className="font-medium">Auto (Inteligente)</span>
+                  <p className="text-[10px] text-fg-muted mt-0.5">Escolhe o melhor modelo automaticamente</p>
+                </div>
               </button>
               <div className="h-px bg-border-default" />
 
-              {Object.entries(groupedModels).filter(([p]) => p !== 'mix').map(([provider, models]) => (
+              {Object.entries(groupedModels).filter(([p]) => p !== 'mix' && p !== 'anthropic').map(([provider, models]) => (
                 <div key={provider}>
                   <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-fg-muted bg-bg-tertiary/50">
                     {providerLabels[provider] || provider}
                   </div>
-                  {models.map((model) => (
+                  {models.filter(m => m.id !== 'auto').map((model) => (
                     <button
                       key={model.id}
                       onClick={() => { setCurrentModel(model.id); setExpandedModelDropdown(false) }}
@@ -662,6 +668,48 @@ export function JarvisChat({
                   ))}
                 </div>
               ))}
+
+              {Object.entries(groupedModels).filter(([p]) => p === 'anthropic').map(([provider, models]) => (
+                <div key={provider}>
+                  <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-fg-muted bg-bg-tertiary/50">
+                    {providerLabels[provider] || provider}
+                  </div>
+                  {models.filter(m => m.id !== 'auto').map((model) => (
+                    <button
+                      key={model.id}
+                      onClick={() => { setCurrentModel(model.id); setExpandedModelDropdown(false) }}
+                      className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors ${
+                        currentModel === model.id ? 'bg-chat-blue-bg text-chat-blue-accent' : 'text-fg-primary hover:bg-bg-tertiary'
+                      }`}
+                    >
+                      <span className="flex-1">{model.name}</span>
+                      <span className="text-fg-muted">
+                        {model.tier === 'fast' && '⚡ Rápido'}
+                        {model.tier === 'balanced' && '⚖️ Balanceado'}
+                        {model.tier === 'powerful' && '🔥 Poderoso'}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              ))}
+
+              {/* Mix mode - advanced */}
+              <div className="h-px bg-border-default" />
+              <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-fg-muted bg-bg-tertiary/50">
+                Avançado
+              </div>
+              <button
+                onClick={() => { setCurrentModel('mix'); setExpandedModelDropdown(false) }}
+                className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors ${
+                  currentModel === 'mix' ? 'bg-chat-blue-bg text-chat-blue-accent' : 'text-fg-primary hover:bg-bg-tertiary'
+                }`}
+              >
+                <Cpu className="w-3.5 h-3.5" />
+                <div className="flex-1">
+                  <span className="font-medium">Mix (Multi-IA)</span>
+                  <p className="text-[10px] text-accent-warning mt-0.5">Custo elevado — combina múltiplos modelos</p>
+                </div>
+              </button>
             </div>
           )}
         </div>
@@ -905,9 +953,20 @@ export function JarvisChat({
             {error && (
               <div className="flex gap-3 p-3 rounded-lg bg-accent-danger/10 border border-accent-danger/20">
                 <X className="w-4 h-4 text-accent-danger flex-shrink-0 mt-0.5" />
-                <div>
+                <div className="flex-1">
                   <p className="text-xs font-medium text-accent-danger">Erro</p>
                   <p className="text-xs text-fg-tertiary mt-0.5">{error}</p>
+                  {lastFailedInput && (
+                    <button
+                      onClick={() => {
+                        setError(null)
+                        sendMessage(lastFailedInput)
+                      }}
+                      className="mt-2 rounded-md bg-accent-danger/20 px-3 py-1 text-xs font-medium text-accent-danger hover:bg-accent-danger/30 transition-colors"
+                    >
+                      Tentar novamente
+                    </button>
+                  )}
                 </div>
               </div>
             )}

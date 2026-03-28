@@ -6,7 +6,7 @@
 
 export type ClaudeModel = 'claude-opus-4-6' | 'claude-sonnet-4-6' | 'claude-haiku-4-5-20251001'
 export type GeminiModel = 'gemini-2.5-flash' | 'gemini-2.5-pro'
-export type ModelId = ClaudeModel | GeminiModel | 'mix'
+export type ModelId = ClaudeModel | GeminiModel | 'mix' | 'auto'
 
 export interface ModelInfo {
   id: ModelId
@@ -50,6 +50,11 @@ export const MODELS: Record<string, ModelInfo> = {
     id: 'mix', name: 'Mix (Multi-IA)', provider: 'mix',
     tier: 'powerful', costPer1kInput: 0, costPer1kOutput: 0,
     maxTokens: 16384, supportsTools: true, supportsStreaming: false,
+  },
+  'auto': {
+    id: 'auto', name: 'Auto (Inteligente)', provider: 'anthropic',
+    tier: 'balanced', costPer1kInput: 0, costPer1kOutput: 0,
+    maxTokens: 8192, supportsTools: true, supportsStreaming: true,
   },
 }
 

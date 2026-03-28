@@ -75,6 +75,14 @@ export async function updateAssessmentScore(
     .update({ score, status: 'completed' as AssessmentStatus })
     .eq('id', id)
   if (error) throw error
+
+  // Auto-update mastery for related topics
+  try {
+    const { recalculateMasteryFromScore } = await import('./mastery-pipeline')
+    await recalculateMasteryFromScore(id, score)
+  } catch {
+    // Non-critical: mastery update can fail silently
+  }
 }
 
 export async function updateAssessmentStatus(

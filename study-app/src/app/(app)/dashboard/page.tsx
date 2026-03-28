@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import { cn, formatCountdown, countdownColor, masteryColor, masteryTextColor } from '@/lib/utils'
 import { EmptyState } from '@/components/ui/empty-state'
+import { DailyBriefing } from '@/components/jarvis/daily-briefing'
 import { getUpcomingAssessments } from '@/lib/services/assessments'
 import { getAllTopics, getDisciplines } from '@/lib/services/disciplines'
 import { getRecentSessions, getStudyStreak, getTotalStudyMinutes } from '@/lib/services/study-sessions'
@@ -125,6 +126,9 @@ export default function DashboardPage() {
           </p>
         </div>
       </div>
+
+      {/* Jarvis Daily Briefing */}
+      <DailyBriefing onOpenJarvis={(msg) => window.location.href = `/jarvis?msg=${encodeURIComponent(msg)}`} />
 
       {error && (
         <section className="rounded-lg border border-accent-warning/30 bg-accent-warning/5 p-4">

@@ -9,16 +9,28 @@ interface FloatingButtonProps {
   currentPage?: string
   disciplineId?: string
   topicId?: string
+  initialMessage?: string | null
+  onMessageConsumed?: () => void
 }
 
 export function FloatingButton({
   currentPage,
   disciplineId,
   topicId,
+  initialMessage,
+  onMessageConsumed,
 }: FloatingButtonProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [floatingConvId, setFloatingConvId] = useState<string | null>(null)
+
+  // Auto-open when a message is pending from JarvisProvider
+  useEffect(() => {
+    if (initialMessage) {
+      setIsOpen(true)
+      onMessageConsumed?.()
+    }
+  }, [initialMessage, onMessageConsumed])
 
   const handleConversationCreated = useCallback((conv: ConversationRow) => {
     setFloatingConvId(conv.id)

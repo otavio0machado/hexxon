@@ -18,6 +18,7 @@ import { callClaude, streamClaude } from './providers/claude'
 import { callGemini } from './providers/gemini'
 import { buildSystemPrompt } from './context'
 import { toProviderTools, executeTool } from './tools'
+import { selectModel } from './model-router'
 import { supabase } from '@/lib/supabase'
 
 // ── Main Entry Point ────────────────────────────────────────
@@ -30,11 +31,18 @@ export async function orchestrate(
   const systemPrompt = await buildSystemPrompt(context)
   const providerTools = toProviderTools()
 
-  if (model === 'mix') {
+  // Resolve 'auto' model to the best fit
+  let resolvedModel = model
+  if (model === 'auto') {
+    const routing = selectModel(messages, context)
+    resolvedModel = routing.model
+  }
+
+  if (resolvedModel === 'mix') {
     return executeMixMode(messages, context, systemPrompt, providerTools)
   }
 
-  return executeSingleModel(messages, model, context, systemPrompt, providerTools)
+  return executeSingleModel(messages, resolvedModel, context, systemPrompt, providerTools)
 }
 
 // ── Single Model Execution ──────────────────────────────────
@@ -464,11 +472,19 @@ export async function orchestrateStream(
 ): Promise<void> {
   const systemPrompt = await buildSystemPrompt(context)
   const providerTools = toProviderTools()
-  const modelInfo = ModelRegistry[model]
 
-  if (!modelInfo || model === 'mix') {
+  // Resolve 'auto' model
+  let resolvedModel = model
+  if (model === 'auto') {
+    const routing = selectModel(messages, context)
+    resolvedModel = routing.model
+  }
+
+  const modelInfo = ModelRegistry[resolvedModel]
+
+  if (!modelInfo || resolvedModel === 'mix') {
     // Fall back to non-streaming for mix mode
-    const result = await orchestrate(messages, model, context)
+    const result = await orchestrate(messages, resolvedModel, context)
     onDelta(result.message.content)
     if (result.toolsExecuted.length > 0) onToolResults(result.toolsExecuted)
     if (result.message.postActions) onPostActions(result.message.postActions)
