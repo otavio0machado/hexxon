@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, createContext, useContext } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -18,9 +18,35 @@ import {
   Search,
   Keyboard,
   Bot,
+  Sun,
+  Moon,
+  Menu,
+  X,
 } from "lucide-react";
 import { getCurriculumDisciplines } from "@/lib/materials/catalog";
 import { cn } from "@/lib/utils";
+import { useTheme } from "@/components/theme-provider";
+
+// ── Mobile sidebar context ──────────────────────────────────
+const MobileSidebarContext = createContext<{
+  open: boolean;
+  setOpen: (v: boolean) => void;
+}>({ open: false, setOpen: () => {} });
+
+export function useMobileSidebar() {
+  return useContext(MobileSidebarContext);
+}
+
+export function MobileSidebarProvider({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <MobileSidebarContext.Provider value={{ open, setOpen }}>
+      {children}
+    </MobileSidebarContext.Provider>
+  );
+}
+
+// ── Nav data ────────────────────────────────────────────────
 
 const disciplineNavItems = getCurriculumDisciplines().map((discipline) => ({
   href: `/disciplina/${discipline.id}`,
@@ -38,39 +64,71 @@ const navItems = [
   { href: "/exercicios", label: "Exercícios", icon: Dumbbell, shortcut: "⌘7" },
   { href: "/calendario", label: "Calendário", icon: Calendar, shortcut: "⌘8" },
   { href: "/notas", label: "Notas", icon: StickyNote, shortcut: "⌘9" },
-  { href: "/jarvis", label: "JARVIS", icon: Bot, shortcut: "⌘J" },
+  { href: "/jarvis", label: "Hexxon AI", icon: Bot, shortcut: "⌘J" },
 ];
+
+// ── Mobile header bar ───────────────────────────────────────
+
+export function MobileHeader() {
+  const { setOpen } = useMobileSidebar();
+
+  return (
+    <header className="md:hidden fixed top-0 left-0 right-0 z-30 flex h-14 items-center gap-3 border-b border-border-default bg-bg-primary/95 backdrop-blur-sm px-4">
+      <button
+        onClick={() => setOpen(true)}
+        className="flex h-8 w-8 items-center justify-center rounded-md text-fg-tertiary hover:bg-bg-secondary hover:text-fg-primary transition-colors"
+      >
+        <Menu size={20} />
+      </button>
+      <span className="text-sm font-semibold tracking-tight text-fg-primary">
+        HEXXON
+      </span>
+    </header>
+  );
+}
+
+// ── Sidebar ─────────────────────────────────────────────────
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
+  const { theme, toggleTheme } = useTheme();
+  const { open: mobileOpen, setOpen: setMobileOpen } = useMobileSidebar();
 
-  return (
-    <aside
-      className={cn(
-        "fixed left-0 top-0 z-40 flex h-screen flex-col border-r border-border-default bg-bg-primary transition-all",
-        collapsed ? "w-16" : "w-60"
-      )}
-    >
+  // Close mobile sidebar on navigation
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname, setMobileOpen]);
+
+  const sidebarContent = (
+    <>
       {/* Logo */}
       <div className="flex h-16 items-center justify-between border-b border-border-default px-4">
         {!collapsed && (
           <span className="text-base font-semibold tracking-tight text-fg-primary">
-            cogni.
+            HEXXON
           </span>
         )}
         <button
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={() => {
+            if (mobileOpen) setMobileOpen(false);
+            else setCollapsed(!collapsed);
+          }}
           className="flex h-8 w-8 items-center justify-center rounded-md text-fg-tertiary transition-colors hover:bg-bg-secondary hover:text-fg-secondary"
           title={collapsed ? "Expandir sidebar" : "Recolher sidebar"}
         >
-          {collapsed ? <PanelLeft size={16} /> : <PanelLeftClose size={16} />}
+          {mobileOpen ? (
+            <X size={16} />
+          ) : collapsed ? (
+            <PanelLeft size={16} />
+          ) : (
+            <PanelLeftClose size={16} />
+          )}
         </button>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-2 py-3">
-        {/* Section: Disciplinas */}
         {!collapsed && (
           <div className="mb-1 px-2 pt-2">
             <span className="text-[11px] font-semibold uppercase tracking-widest text-fg-muted">
@@ -82,7 +140,7 @@ export function Sidebar() {
           <NavItem
             key={item.href}
             {...item}
-            collapsed={collapsed}
+            collapsed={collapsed && !mobileOpen}
             active={pathname === item.href}
           />
         ))}
@@ -94,12 +152,12 @@ export function Sidebar() {
             </span>
           </div>
         )}
-        {collapsed && <div className="my-3 border-t border-border-default" />}
+        {(collapsed && !mobileOpen) && <div className="my-3 border-t border-border-default" />}
         {navItems.map((item) => (
           <NavItem
             key={item.href}
             {...item}
-            collapsed={collapsed}
+            collapsed={collapsed && !mobileOpen}
             active={pathname === item.href || pathname.startsWith(item.href + "/")}
           />
         ))}
@@ -109,7 +167,7 @@ export function Sidebar() {
       <div className="border-t border-border-default px-2 py-3">
         <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-fg-tertiary transition-colors hover:bg-bg-secondary hover:text-fg-secondary">
           <Search size={16} />
-          {!collapsed && (
+          {(!collapsed || mobileOpen) && (
             <>
               <span className="flex-1 text-left text-sm">Buscar</span>
               <kbd className="rounded border border-border-default bg-bg-tertiary px-1.5 py-0.5 font-mono text-[10px] text-fg-muted">
@@ -118,7 +176,7 @@ export function Sidebar() {
             </>
           )}
         </button>
-        {!collapsed && (
+        {(!collapsed || mobileOpen) && (
           <button className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-fg-tertiary transition-colors hover:bg-bg-secondary hover:text-fg-secondary">
             <Keyboard size={16} />
             <span className="flex-1 text-left text-sm">Atalhos</span>
@@ -127,8 +185,47 @@ export function Sidebar() {
             </kbd>
           </button>
         )}
+        <button
+          onClick={toggleTheme}
+          className="mt-1 flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-fg-tertiary transition-colors hover:bg-bg-secondary hover:text-fg-secondary"
+          title={theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
+        >
+          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+          {(!collapsed || mobileOpen) && (
+            <span className="flex-1 text-left text-sm">
+              {theme === 'dark' ? 'Tema claro' : 'Tema escuro'}
+            </span>
+          )}
+        </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside
+        className={cn(
+          "hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col border-r border-border-default bg-bg-primary transition-all",
+          collapsed ? "w-16" : "w-60"
+        )}
+      >
+        {sidebarContent}
+      </aside>
+
+      {/* Mobile overlay sidebar */}
+      {mobileOpen && (
+        <>
+          <div
+            className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside className="md:hidden fixed left-0 top-0 z-50 flex h-screen w-72 flex-col border-r border-border-default bg-bg-primary slide-in-from-right">
+            {sidebarContent}
+          </aside>
+        </>
+      )}
+    </>
   );
 }
 

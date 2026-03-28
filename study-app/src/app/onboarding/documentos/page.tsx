@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
 
 interface UploadedFile {
   id: string;
@@ -80,7 +81,7 @@ export default function OnboardingDocumentosPage() {
               }
             }
           })
-          .catch(() => {});
+          .catch(() => console.warn('Background document analysis failed'));
       } else {
         updateFile(tempId, { status: "done", docType: "other" });
       }
@@ -144,12 +145,12 @@ export default function OnboardingDocumentosPage() {
           Envie seus materiais
         </h1>
         <p className="text-sm text-fg-secondary leading-relaxed">
-          Quanto mais material voce enviar, melhor o Jarvis vai te ajudar. Planos
+          Quanto mais material voce enviar, melhor a Hexxon AI vai te ajudar. Planos
           de ensino, listas de exercicios, slides, livros — tudo conta.
         </p>
       </div>
 
-      {/* Jarvis message */}
+      {/* Hexxon AI message */}
       <div className="rounded-xl border border-border-default bg-bg-surface p-4">
         <p className="text-sm text-fg-secondary italic">
           &quot;Agora preciso dos seus materiais. Quanto mais voce me enviar,
@@ -258,28 +259,26 @@ export default function OnboardingDocumentosPage() {
 
       {/* Actions */}
       <div className="flex gap-3">
-        <button
+        <Button
+          variant="secondary"
           onClick={handleContinue}
           disabled={isAdvancing || processingCount > 0}
-          className="flex-1 rounded-xl border border-border-default py-3 text-sm font-medium text-fg-secondary transition-colors hover:bg-bg-secondary disabled:opacity-50"
+          className="flex-1 rounded-xl py-3"
         >
-          {files.length === 0 ? "Pular por agora" : ""}
-          {files.length > 0 && processingCount > 0
-            ? "Aguarde o processamento..."
-            : ""}
-          {files.length > 0 && processingCount === 0
-            ? "Continuar"
-            : ""}
-          {files.length === 0 ? "" : ""}
-        </button>
+          {files.length === 0
+            ? "Pular por agora"
+            : processingCount > 0
+              ? "Aguarde o processamento..."
+              : "Continuar"}
+        </Button>
         {files.length > 0 && processingCount === 0 && (
-          <button
+          <Button
             onClick={handleContinue}
-            disabled={isAdvancing}
-            className="flex-1 rounded-xl bg-accent-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-accent-primary/90 disabled:opacity-50"
+            loading={isAdvancing}
+            className="flex-1 rounded-xl py-3"
           >
-            {isAdvancing ? "Avancando..." : "Pronto, processe tudo"}
-          </button>
+            Pronto, processe tudo
+          </Button>
         )}
       </div>
     </div>

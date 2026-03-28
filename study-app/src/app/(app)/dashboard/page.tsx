@@ -12,6 +12,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { cn, formatCountdown, countdownColor, masteryColor, masteryTextColor } from '@/lib/utils'
+import { EmptyState } from '@/components/ui/empty-state'
 import { getUpcomingAssessments } from '@/lib/services/assessments'
 import { getAllTopics, getDisciplines } from '@/lib/services/disciplines'
 import { getRecentSessions, getStudyStreak, getTotalStudyMinutes } from '@/lib/services/study-sessions'
@@ -162,14 +163,28 @@ export default function DashboardPage() {
       </section>
 
       {/* Upcoming Exams */}
-      {upcomingExams.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-fg-primary">Próximas Provas</h2>
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-fg-primary">Próximas Provas</h2>
+          {upcomingExams.length > 0 && (
             <Link href="/provas" className="text-sm text-accent-primary hover:underline">
               Ver todas →
             </Link>
-          </div>
+          )}
+        </div>
+        {upcomingExams.length === 0 ? (
+          <EmptyState
+            icon={<Calendar className="w-8 h-8" />}
+            title="Nenhuma prova agendada"
+            description="Cadastre suas provas para acompanhar os prazos e se preparar com antecedência."
+            action={
+              <Link href="/provas" className="text-sm text-accent-primary hover:underline">
+                Agendar prova →
+              </Link>
+            }
+            className="rounded-lg border border-border-default bg-bg-secondary py-8"
+          />
+        ) : (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {upcomingExams.slice(0, 4).map((exam) => (
               <Link
@@ -211,18 +226,32 @@ export default function DashboardPage() {
               </Link>
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* Recent Study Sessions */}
-      {recentSessions.length > 0 && (
-        <section>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-fg-primary">Sessões Recentes</h2>
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-fg-primary">Sessões Recentes</h2>
+          {recentSessions.length > 0 && (
             <Link href="/materiais" className="text-sm text-accent-primary hover:underline">
               Abrir materiais →
             </Link>
-          </div>
+          )}
+        </div>
+        {recentSessions.length === 0 ? (
+          <EmptyState
+            icon={<BookOpen className="w-8 h-8" />}
+            title="Nenhuma sessão registrada"
+            description="Comece a estudar para acompanhar seu progresso aqui."
+            action={
+              <Link href="/materiais" className="text-sm text-accent-primary hover:underline">
+                Abrir materiais →
+              </Link>
+            }
+            className="rounded-lg border border-border-default bg-bg-secondary py-8"
+          />
+        ) : (
           <div className="space-y-2">
             {recentSessions.map((session) => (
               <div
@@ -232,11 +261,11 @@ export default function DashboardPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <p className="text-sm font-medium text-fg-primary">
-                      {session.kind === 'study' && '📚 Estudo'}
-                      {session.kind === 'exercise' && '✏️ Exercícios'}
-                      {session.kind === 'review' && '🔍 Revisão'}
-                      {session.kind === 'simulation' && '🎯 Simulado'}
-                      {session.kind === 'flashcard' && '🃏 Flashcards'}
+                      {session.kind === 'study' && 'Estudo'}
+                      {session.kind === 'exercise' && 'Exercicios'}
+                      {session.kind === 'review' && 'Revisao'}
+                      {session.kind === 'simulation' && 'Simulado'}
+                      {session.kind === 'flashcard' && 'Flashcards'}
                     </p>
                     <p className="text-xs text-fg-tertiary">
                       {session.duration_min} minutos
@@ -251,13 +280,20 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* Topic Mastery Overview */}
-      {topics.length > 0 && (
-        <section>
-          <h2 className="text-lg font-semibold text-fg-primary mb-4">Progresso por Disciplina</h2>
+      <section>
+        <h2 className="text-lg font-semibold text-fg-primary mb-4">Progresso por Disciplina</h2>
+        {topics.length === 0 ? (
+          <EmptyState
+            icon={<Target className="w-8 h-8" />}
+            title="Nenhum topico cadastrado"
+            description="Seus topicos aparecerao aqui conforme voce adicionar disciplinas e materiais."
+            className="rounded-lg border border-border-default bg-bg-secondary py-8"
+          />
+        ) : (
           <div className="space-y-6">
             {Object.entries(topicsByDiscipline).map(([disciplineId, disciplineTopics]) => {
               const masteredCount = disciplineTopics.filter(t => t.mastery === 'mastered').length
@@ -307,7 +343,7 @@ export default function DashboardPage() {
                               {topic.mastery === 'proficient' && 'Proficiente'}
                               {topic.mastery === 'developing' && 'Desenvolvendo'}
                               {topic.mastery === 'exposed' && 'Exposto'}
-                              {topic.mastery === 'none' && 'Não iniciado'}
+                              {topic.mastery === 'none' && 'Nao iniciado'}
                             </p>
                           </div>
                         </div>
@@ -318,8 +354,8 @@ export default function DashboardPage() {
               )
             })}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* Quick Actions */}
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">

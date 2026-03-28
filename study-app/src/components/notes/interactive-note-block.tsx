@@ -86,7 +86,7 @@ export function InteractiveNoteBlock({
         dragging && "opacity-40",
       )}
     >
-      <div className="overflow-hidden rounded-3xl border border-border-default bg-bg-primary shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+      <div className="overflow-hidden rounded-3xl border border-border-default bg-bg-primary shadow-[var(--note-block-shadow)]">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-default/70 px-4 py-3">
           <div className="flex items-center gap-2">
             <button

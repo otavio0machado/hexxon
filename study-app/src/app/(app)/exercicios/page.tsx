@@ -24,6 +24,11 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { Spinner } from '@/components/ui/spinner'
+import { EmptyState } from '@/components/ui/empty-state'
 
 type FilterDifficulty = "all" | "1" | "2" | "3" | "4" | "5";
 type FilterType = "all" | "multiple_choice" | "open_ended" | "proof" | "computation";
@@ -347,9 +352,11 @@ export default function ExerciciosPage() {
         <h1 className="text-2xl font-semibold tracking-tight text-fg-primary">
           Exercícios
         </h1>
-        <div className="rounded-md border border-border-default bg-bg-surface p-8 text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-accent-primary border-t-transparent" />
-          <p className="mt-2 text-sm text-fg-tertiary">Carregando exercícios...</p>
+        <div className="flex min-h-[50vh] items-center justify-center rounded-md border border-border-default bg-bg-surface">
+          <div className="text-center">
+            <Spinner size="lg" />
+            <p className="mt-2 text-sm text-fg-tertiary">Carregando exercícios...</p>
+          </div>
         </div>
       </div>
     );
@@ -404,10 +411,10 @@ export default function ExerciciosPage() {
             <span className="text-xs font-medium text-fg-muted uppercase">
               Disciplina:
             </span>
-            <select
+            <Select
               value={filterDiscipline}
               onChange={(e) => setFilterDiscipline(e.target.value)}
-              className="rounded-sm border border-border-default bg-bg-surface px-2 py-1 text-xs text-fg-secondary outline-none"
+              className="w-auto rounded-sm px-2 py-1 text-xs"
             >
               <option value="all">Todas</option>
               {Array.from(disciplines.values()).map((d) => (
@@ -415,7 +422,7 @@ export default function ExerciciosPage() {
                   {d.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         )}
 
@@ -424,10 +431,10 @@ export default function ExerciciosPage() {
             <span className="text-xs font-medium text-fg-muted uppercase">
               Tópico:
             </span>
-            <select
+            <Select
               value={filterTopic}
               onChange={(e) => setFilterTopic(e.target.value)}
-              className="rounded-sm border border-border-default bg-bg-surface px-2 py-1 text-xs text-fg-secondary outline-none"
+              className="w-auto rounded-sm px-2 py-1 text-xs"
             >
               <option value="all">Todos</option>
               {Array.from(topics.values()).map((t) => (
@@ -435,7 +442,7 @@ export default function ExerciciosPage() {
                   {t.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         )}
 
@@ -482,11 +489,12 @@ export default function ExerciciosPage() {
 
       {/* Exercises grouped by topic */}
       {grouped.size === 0 ? (
-        <div className="rounded-md border border-border-default bg-bg-surface p-8 text-center">
-          <BookOpen className="mx-auto h-8 w-8 text-fg-muted" />
-          <p className="mt-2 text-sm text-fg-tertiary">
-            Nenhum exercício encontrado com os filtros aplicados.
-          </p>
+        <div className="rounded-md border border-border-default bg-bg-surface">
+          <EmptyState
+            icon={<BookOpen className="h-8 w-8" />}
+            title="Nenhum exercício encontrado"
+            description="Tente ajustar os filtros aplicados."
+          />
         </div>
       ) : (
         <div className="space-y-4">
@@ -511,7 +519,7 @@ export default function ExerciciosPage() {
                   )}
                   {aiGen && (
                     <div className="flex items-center gap-1 text-xs text-fg-tertiary">
-                      <div className="h-3 w-3 animate-spin rounded-full border-2 border-accent-primary border-t-transparent" />
+                      <Spinner size="sm" />
                       Gerando...
                     </div>
                   )}
@@ -616,7 +624,7 @@ export default function ExerciciosPage() {
                                 <p className="text-xs font-medium text-fg-muted uppercase">
                                   Sua resposta
                                 </p>
-                                <textarea
+                                <Textarea
                                   value={practiceState.answer}
                                   onChange={(e) =>
                                     setPracticeState((prev) =>
@@ -626,7 +634,7 @@ export default function ExerciciosPage() {
                                     )
                                   }
                                   placeholder="Digite sua resposta aqui..."
-                                  className="w-full rounded border border-border-default bg-bg-surface px-2 py-1 text-sm text-fg-secondary outline-none resize-none min-h-20"
+                                  className="min-h-20"
                                   disabled={practiceState.isLoading}
                                 />
 

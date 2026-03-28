@@ -28,6 +28,7 @@ import {
   FileText,
   type LucideIcon,
 } from 'lucide-react'
+import { useToast } from '@/components/ui/toast'
 import type { JarvisMessage, ModelId, ModelInfo, PostAction } from '@/lib/jarvis/types'
 import { MODELS } from '@/lib/jarvis/types'
 import {
@@ -262,6 +263,7 @@ export function JarvisChat({
   onConversationCreated,
   onConversationUpdated,
 }: JarvisChatProps) {
+  const toast = useToast()
   const [messages, setMessages] = useState<JarvisMessage[]>([])
   const [currentModel, setCurrentModel] = useState<ModelId>('claude-sonnet-4-6')
   const [isLoading, setIsLoading] = useState(false)
@@ -349,11 +351,11 @@ export function JarvisChat({
 
     try {
       const convId = await ensureConversation(content)
-      await saveMessage(convId, userMsg).catch(() => {})
+      await saveMessage(convId, userMsg).catch(() => toast.warning('Erro ao salvar mensagem. Ela pode não persistir.'))
 
       if (messages.length === 0) {
         const title = generateTitle(content)
-        await updateConversation(convId, { title }).catch(() => {})
+        await updateConversation(convId, { title }).catch(() => console.warn('Failed to update conversation title'))
         onConversationUpdated?.(convId, title)
       }
 
@@ -477,9 +479,9 @@ export function JarvisChat({
       meta,
       timestamp: Date.now(),
     }
-    await saveMessage(convId, finalMsg).catch(() => {})
+    await saveMessage(convId, finalMsg).catch(() => toast.warning('Erro ao salvar resposta.'))
     if (meta?.estimatedCostUsd) {
-      await updateConversation(convId, { total_cost_usd: meta.estimatedCostUsd }).catch(() => {})
+      await updateConversation(convId, { total_cost_usd: meta.estimatedCostUsd }).catch(() => console.warn('Failed to update conversation cost'))
     }
   }
 
@@ -505,9 +507,9 @@ export function JarvisChat({
     const assistantMsg: JarvisMessage = data.message
     setMessages((prev) => [...prev, assistantMsg])
 
-    await saveMessage(convId, assistantMsg).catch(() => {})
+    await saveMessage(convId, assistantMsg).catch(() => toast.warning('Erro ao salvar resposta.'))
     if (assistantMsg.meta?.estimatedCostUsd) {
-      await updateConversation(convId, { total_cost_usd: assistantMsg.meta.estimatedCostUsd }).catch(() => {})
+      await updateConversation(convId, { total_cost_usd: assistantMsg.meta.estimatedCostUsd }).catch(() => console.warn('Failed to update conversation cost'))
     }
   }
 
@@ -530,7 +532,7 @@ export function JarvisChat({
     try {
       const convId = await ensureConversation(action.label)
 
-      await saveMessage(convId, userMsg).catch(() => {})
+      await saveMessage(convId, userMsg).catch(() => toast.warning('Erro ao salvar mensagem. Ela pode não persistir.'))
 
       const res = await fetch('/api/jarvis', {
         method: 'POST',
@@ -555,12 +557,12 @@ export function JarvisChat({
 
       setMessages((prev) => [...prev, assistantMsg])
 
-      await saveMessage(convId, assistantMsg).catch(() => {})
+      await saveMessage(convId, assistantMsg).catch(() => toast.warning('Erro ao salvar resposta.'))
 
       if (assistantMsg.meta?.estimatedCostUsd) {
         await updateConversation(convId, {
           total_cost_usd: assistantMsg.meta.estimatedCostUsd,
-        }).catch(() => {})
+        }).catch(() => console.warn('Failed to update conversation cost'))
       }
     } catch (err) {
       setError((err as Error).message)
@@ -628,7 +630,7 @@ export function JarvisChat({
               <button
                 onClick={() => { setCurrentModel('mix'); setExpandedModelDropdown(false) }}
                 className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors ${
-                  currentModel === 'mix' ? 'bg-blue-500/20 text-blue-400' : 'text-fg-primary hover:bg-bg-tertiary'
+                  currentModel === 'mix' ? 'bg-chat-blue-bg text-chat-blue-accent' : 'text-fg-primary hover:bg-bg-tertiary'
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5" />
@@ -647,7 +649,7 @@ export function JarvisChat({
                       key={model.id}
                       onClick={() => { setCurrentModel(model.id); setExpandedModelDropdown(false) }}
                       className={`w-full text-left px-3 py-2 text-xs flex items-center gap-2 transition-colors ${
-                        currentModel === model.id ? 'bg-blue-500/20 text-blue-400' : 'text-fg-primary hover:bg-bg-tertiary'
+                        currentModel === model.id ? 'bg-chat-blue-bg text-chat-blue-accent' : 'text-fg-primary hover:bg-bg-tertiary'
                       }`}
                     >
                       <span className="flex-1">{model.name}</span>
@@ -667,7 +669,7 @@ export function JarvisChat({
         {currentModelData && (
           <div className="flex items-center gap-1.5">
             {currentModel.startsWith('claude') && (
-              <span className="px-1.5 py-0.5 rounded bg-green-500/10 text-[9px] font-medium text-green-400 tracking-wide">STREAM</span>
+              <span className="px-1.5 py-0.5 rounded bg-chat-green-badge-bg text-[9px] font-medium text-chat-green-badge-text tracking-wide">STREAM</span>
             )}
             <span className="text-[10px] text-fg-muted">
               {currentModelData.tier === 'fast' && '⚡'}
@@ -682,17 +684,17 @@ export function JarvisChat({
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
         {loadingHistory ? (
           <div className="h-full flex items-center justify-center">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+            <Loader2 className="w-6 h-6 animate-spin text-chat-blue-loader" />
             <span className="ml-2 text-sm text-fg-tertiary">Carregando conversa...</span>
           </div>
         ) : messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center px-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/20 via-purple-500/15 to-cyan-500/20 flex items-center justify-center mb-4 ring-1 ring-blue-500/10">
-              <Bot className="w-8 h-8 text-blue-400" />
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[var(--chat-gradient-from)] via-[var(--chat-gradient-via)] to-[var(--chat-gradient-to)] flex items-center justify-center mb-4 ring-1 ring-chat-ring">
+              <Bot className="w-8 h-8 text-chat-accent" />
             </div>
             <div className="flex items-center gap-2 mb-1">
-              <h2 className="text-lg font-bold text-fg-primary">JARVIS</h2>
-              <span className="px-1.5 py-0.5 rounded bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-cyan-500/20 text-[10px] font-bold text-blue-400 tracking-wide">3.0</span>
+              <h2 className="text-lg font-bold text-fg-primary">HEXXON AI</h2>
+              <span className="px-1.5 py-0.5 rounded bg-gradient-to-r from-[var(--chat-gradient-from)] via-[var(--chat-gradient-via)] to-[var(--chat-gradient-to)] text-[10px] font-bold text-chat-accent tracking-wide">3.0</span>
             </div>
             <p className="text-xs text-fg-tertiary mb-1 max-w-sm">
               Copiloto omnisciente. Mission Mode, Learning Paths, Forgetting Curve, Simulados e Consciência Situacional.
@@ -707,14 +709,14 @@ export function JarvisChat({
                   <button
                     key={idx}
                     onClick={() => sendMessage(sugg.text)}
-                    className="text-left p-3 rounded-lg bg-bg-secondary hover:bg-bg-tertiary transition-all border border-border-default group hover:border-blue-500/20 hover:shadow-sm"
+                    className="text-left p-3 rounded-lg bg-bg-secondary hover:bg-bg-tertiary transition-all border border-border-default group hover:border-chat-blue-border hover:shadow-sm"
                   >
                     <div className="flex items-start gap-2.5">
-                      <div className="w-7 h-7 rounded-md bg-bg-tertiary group-hover:bg-blue-500/10 flex items-center justify-center flex-shrink-0 transition-colors">
-                        <Icon className="w-3.5 h-3.5 text-fg-muted group-hover:text-blue-400 transition-colors" />
+                      <div className="w-7 h-7 rounded-md bg-bg-tertiary group-hover:bg-chat-blue-bg flex items-center justify-center flex-shrink-0 transition-colors">
+                        <Icon className="w-3.5 h-3.5 text-fg-muted group-hover:text-chat-blue-accent transition-colors" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="text-[10px] font-medium text-fg-muted group-hover:text-blue-400/80 transition-colors">{sugg.tag}</span>
+                        <span className="text-[10px] font-medium text-fg-muted group-hover:text-chat-blue-accent/80 transition-colors">{sugg.tag}</span>
                         <p className="text-xs text-fg-secondary group-hover:text-fg-primary transition-colors mt-0.5 line-clamp-2">{sugg.text}</p>
                       </div>
                     </div>
@@ -730,7 +732,7 @@ export function JarvisChat({
                 {msg.role === 'user' ? (
                   /* User message */
                   <div className="flex gap-3 justify-end">
-                    <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-sm bg-blue-500/15 border border-blue-500/20">
+                    <div className="max-w-[85%] px-4 py-2.5 rounded-2xl rounded-br-sm bg-chat-blue-bg border border-chat-blue-border">
                       <p className="text-sm text-fg-primary">{msg.content}</p>
                     </div>
                   </div>
@@ -738,7 +740,7 @@ export function JarvisChat({
                   /* Assistant message */
                   <div className="flex gap-3">
                     <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-bg-tertiary flex items-center justify-center mt-0.5">
-                      <Bot className="w-3.5 h-3.5 text-blue-400" />
+                      <Bot className="w-3.5 h-3.5 text-chat-blue-accent" />
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -783,11 +785,11 @@ export function JarvisChat({
                                   onClick={() => toggleToolResult(tool.toolCallId)}
                                   className="w-full flex items-center gap-2 px-3 py-2 hover:bg-bg-tertiary transition-colors text-xs"
                                 >
-                                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${tool.success ? 'bg-green-500' : 'bg-red-500'}`} />
+                                  <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${tool.success ? 'bg-accent-success' : 'bg-accent-danger'}`} />
                                   <Zap className="w-3 h-3 text-fg-muted flex-shrink-0" />
                                   <span className="text-fg-secondary flex-1 text-left truncate">{tool.message.slice(0, 200)}</span>
                                   {(hasHtml || hasMermaid) && (
-                                    <span className="px-1.5 py-0.5 rounded bg-purple-500/10 text-[9px] font-medium text-purple-400 flex-shrink-0">
+                                    <span className="px-1.5 py-0.5 rounded bg-chat-purple-badge-bg text-[9px] font-medium text-chat-purple-badge-text flex-shrink-0">
                                       {hasHtml ? 'INTERATIVO' : 'DIAGRAMA'}
                                     </span>
                                   )}
@@ -842,9 +844,9 @@ export function JarvisChat({
                                 onClick={() => handleExecuteAction(action)}
                                 className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-all flex items-center gap-1.5 ${
                                   action.variant === 'primary'
-                                    ? 'bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/20 hover:shadow-sm'
+                                    ? 'bg-chat-blue-bg text-chat-blue-accent hover:bg-chat-accent-muted border border-chat-blue-border hover:shadow-sm'
                                     : action.variant === 'secondary'
-                                      ? 'bg-bg-tertiary text-fg-secondary hover:text-fg-primary border border-border-default hover:border-blue-500/20'
+                                      ? 'bg-bg-tertiary text-fg-secondary hover:text-fg-primary border border-border-default hover:border-chat-blue-border'
                                       : 'text-fg-tertiary hover:text-fg-secondary hover:bg-bg-tertiary'
                                 }`}
                               >
@@ -870,9 +872,9 @@ export function JarvisChat({
                           {expandedMixSources.has(msg.id) && (
                             <div className="mt-2 space-y-2">
                               {msg.mixSources.map((source) => (
-                                <div key={source.model} className="pl-3 border-l-2 border-blue-500/30 text-xs">
+                                <div key={source.model} className="pl-3 border-l-2 border-chat-blue-border text-xs">
                                   <div className="flex items-center gap-2 mb-0.5">
-                                    <span className="font-medium text-blue-400">{MODELS[source.model]?.name ?? source.model}</span>
+                                    <span className="font-medium text-chat-blue-accent">{MODELS[source.model]?.name ?? source.model}</span>
                                     <span className="text-fg-muted">{(source.durationMs / 1000).toFixed(1)}s · {source.tokensUsed} tokens</span>
                                   </div>
                                   <p className="text-fg-tertiary line-clamp-2">{source.content.slice(0, 200)}</p>
@@ -891,20 +893,20 @@ export function JarvisChat({
             {isLoading && !messages.some(m => m.role === 'assistant' && m.content === '' && m.id?.startsWith('jarvis_')) && (
               <div className="flex gap-3">
                 <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-bg-tertiary flex items-center justify-center">
-                  <Bot className="w-3.5 h-3.5 text-blue-400" />
+                  <Bot className="w-3.5 h-3.5 text-accent-info" />
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-bg-secondary border border-border-default">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-400" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-chat-blue-loader" />
                   <span className="text-xs text-fg-tertiary">Pensando...</span>
                 </div>
               </div>
             )}
 
             {error && (
-              <div className="flex gap-3 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
-                <X className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+              <div className="flex gap-3 p-3 rounded-lg bg-accent-danger/10 border border-accent-danger/20">
+                <X className="w-4 h-4 text-accent-danger flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="text-xs font-medium text-red-400">Erro</p>
+                  <p className="text-xs font-medium text-accent-danger">Erro</p>
                   <p className="text-xs text-fg-tertiary mt-0.5">{error}</p>
                 </div>
               </div>
@@ -929,13 +931,13 @@ export function JarvisChat({
               }
             }}
             placeholder="Pergunte algo..."
-            className="flex-1 px-3 py-2 rounded-lg bg-bg-tertiary text-fg-primary placeholder-fg-muted text-sm resize-none focus:outline-none focus:ring-1 focus:ring-blue-500/50 min-h-[40px] max-h-32"
+            className="flex-1 px-3 py-2 rounded-lg bg-bg-tertiary text-fg-primary placeholder-fg-muted text-sm resize-none focus:outline-none focus:ring-1 focus:ring-border-focus/50 min-h-[40px] max-h-32"
             rows={1}
           />
           <button
             onClick={() => sendMessage(inputValue)}
             disabled={!inputValue.trim() || isLoading}
-            className="flex-shrink-0 w-9 h-9 rounded-lg bg-blue-500 hover:bg-blue-600 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
+            className="flex-shrink-0 w-9 h-9 rounded-lg bg-chat-blue-btn hover:bg-chat-blue-btn-hover disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-colors"
           >
             <Send className="w-4 h-4 text-white" />
           </button>

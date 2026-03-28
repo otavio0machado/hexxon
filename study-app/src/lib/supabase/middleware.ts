@@ -41,8 +41,17 @@ export async function updateSession(request: NextRequest) {
     path.startsWith('/auth/')
 
   if (isPublicRoute) {
-    // Public routes are always accessible, even if logged in.
-    // This lets users visit landing, login, or registro freely.
+    return supabaseResponse
+  }
+
+  // API routes — return 401 JSON instead of redirect
+  if (path.startsWith('/api/')) {
+    if (!user) {
+      return NextResponse.json(
+        { error: { code: 'UNAUTHORIZED', message: 'Autenticação necessária.' } },
+        { status: 401 },
+      )
+    }
     return supabaseResponse
   }
 

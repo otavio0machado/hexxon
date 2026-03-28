@@ -95,7 +95,7 @@ export async function POST() {
       await fetch(new URL('/api/admin/claim-legacy-data', process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000').toString(), {
         method: 'POST',
         headers: { cookie: '' }, // Server-side call, auth handled by supabase
-      }).catch(() => {})
+      }).catch(() => { /* non-critical: legacy data claim */ })
 
       return NextResponse.json({
         ok: true,

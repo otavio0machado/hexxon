@@ -1267,7 +1267,7 @@ const tools: ToolDefinition[] = [
 
   {
     name: 'getInsights',
-    description: 'Get active Jarvis insights (smart alerts). These are cross-referenced signals about exam readiness, error patterns, flashcard decay, blockers, etc.',
+    description: 'Get active Hexxon AI insights (smart alerts). These are cross-referenced signals about exam readiness, error patterns, flashcard decay, blockers, etc.',
     category: 'ai-services',
     parameters: {},
     required: [],
@@ -1460,7 +1460,7 @@ const tools: ToolDefinition[] = [
             key_concepts: planResult.data.riskTopics,
             tags: ['missão', 'plano-de-estudo'],
             ai_generated: true,
-          }).then(() => { noteCreated = true }).catch(() => {})
+          }).then(() => { noteCreated = true }).catch(() => { /* non-critical: mission note save */ })
         )
 
         await Promise.allSettled(savePromises)

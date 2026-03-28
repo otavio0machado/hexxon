@@ -2,11 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Modal } from "@/components/ui/modal";
+import { Spinner } from "@/components/ui/spinner";
 import { getAssessments } from "@/lib/services/assessments";
 import { getStudySessions, createStudySession } from "@/lib/services/study-sessions";
 import { getDisciplines } from "@/lib/services/disciplines";
 import type { Assessment, StudySession, Discipline, SessionKind } from "@/lib/supabase";
-import { Plus, X, AlertCircle } from "lucide-react";
+import { Plus, AlertCircle } from "lucide-react";
 
 const DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const SESSION_KINDS: SessionKind[] = ["study", "exercise", "review", "simulation", "flashcard"];
@@ -179,7 +185,7 @@ export default function CalendarioPage() {
           <p className="text-sm text-fg-tertiary">Carregando calendário...</p>
         </div>
       ) : (
-        <div className="rounded-md border border-border-default bg-bg-surface">
+        <div className="rounded-md border border-border-default bg-bg-surface overflow-x-auto">
           <div className="grid grid-cols-7 border-b border-border-default">
             {DAYS.map((d) => (
               <div key={d} className="py-2 text-center text-[10px] font-semibold uppercase tracking-wider text-fg-muted">
@@ -265,89 +271,68 @@ export default function CalendarioPage() {
       </div>
 
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-bg-surface border border-border-default rounded-md p-6 max-w-md w-full space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-fg-primary">Nova Sessão de Estudo</h2>
-              <button onClick={() => setShowModal(false)} className="text-fg-tertiary hover:text-fg-secondary">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      <Modal open={showModal} onClose={() => setShowModal(false)} title="Nova Sessão de Estudo">
+        <div className="space-y-3">
+          <div>
+            <label className="text-xs font-medium text-fg-secondary block mb-1">Disciplina</label>
+            <Select
+              value={formData.discipline_id}
+              onChange={(e) => setFormData({ ...formData, discipline_id: e.target.value })}
+            >
+              <option value="">Selecione uma disciplina</option>
+              {disciplines.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </Select>
+          </div>
 
-            <div className="space-y-3">
-              <div>
-                <label className="text-xs font-medium text-fg-secondary block mb-1">Disciplina</label>
-                <select
-                  value={formData.discipline_id}
-                  onChange={(e) => setFormData({ ...formData, discipline_id: e.target.value })}
-                  className="w-full rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm text-fg-primary"
-                >
-                  <option value="">Selecione uma disciplina</option>
-                  {disciplines.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <div>
+            <label className="text-xs font-medium text-fg-secondary block mb-1">Tipo de Sessão</label>
+            <Select
+              value={formData.kind}
+              onChange={(e) => setFormData({ ...formData, kind: e.target.value as SessionKind })}
+            >
+              {SESSION_KINDS.map((k) => (
+                <option key={k} value={k}>
+                  {k.charAt(0).toUpperCase() + k.slice(1)}
+                </option>
+              ))}
+            </Select>
+          </div>
 
-              <div>
-                <label className="text-xs font-medium text-fg-secondary block mb-1">Tipo de Sessão</label>
-                <select
-                  value={formData.kind}
-                  onChange={(e) => setFormData({ ...formData, kind: e.target.value as SessionKind })}
-                  className="w-full rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm text-fg-primary"
-                >
-                  {SESSION_KINDS.map((k) => (
-                    <option key={k} value={k}>
-                      {k.charAt(0).toUpperCase() + k.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <div>
+            <label className="text-xs font-medium text-fg-secondary block mb-1">Duração (minutos)</label>
+            <Input
+              type="number"
+              min="5"
+              max="480"
+              value={formData.duration_min}
+              onChange={(e) => setFormData({ ...formData, duration_min: parseInt(e.target.value) })}
+            />
+          </div>
 
-              <div>
-                <label className="text-xs font-medium text-fg-secondary block mb-1">Duração (minutos)</label>
-                <input
-                  type="number"
-                  min="5"
-                  max="480"
-                  value={formData.duration_min}
-                  onChange={(e) => setFormData({ ...formData, duration_min: parseInt(e.target.value) })}
-                  className="w-full rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm text-fg-primary"
-                />
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-fg-secondary block mb-1">Notas</label>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm text-fg-primary resize-none"
-                  rows={3}
-                  placeholder="Opcional..."
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={() => setShowModal(false)}
-                className="flex-1 rounded-md border border-border-default px-3 py-2 text-sm text-fg-secondary hover:text-fg-primary transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCreateSession}
-                className="flex-1 rounded-md bg-accent-primary px-3 py-2 text-sm text-bg-primary font-medium hover:bg-accent-primary/90 transition-colors"
-              >
-                Criar Sessão
-              </button>
-            </div>
+          <div>
+            <label className="text-xs font-medium text-fg-secondary block mb-1">Notas</label>
+            <Textarea
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={3}
+              placeholder="Opcional..."
+            />
           </div>
         </div>
-      )}
+
+        <div className="flex gap-2 pt-4">
+          <Button variant="secondary" className="flex-1" onClick={() => setShowModal(false)}>
+            Cancelar
+          </Button>
+          <Button className="flex-1" onClick={handleCreateSession}>
+            Criar Sessão
+          </Button>
+        </div>
+      </Modal>
 
       {/* Toast */}
       {toast && (

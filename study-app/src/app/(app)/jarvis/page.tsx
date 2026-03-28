@@ -22,6 +22,8 @@ import {
   Bot,
 } from 'lucide-react'
 import { JarvisChat } from '@/components/jarvis/chat'
+import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import {
   getConversations,
   createConversation,
@@ -181,13 +183,13 @@ export default function JarvisPage() {
       <div className="w-64 border-r border-border-default flex flex-col bg-bg-secondary">
         {/* Header */}
         <div className="px-4 py-4 border-b border-border-default">
-          <button
+          <Button
             onClick={() => handleNewConversation('Nova conversa')}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-accent-primary hover:bg-accent-primary/90 transition-colors text-bg-primary font-semibold text-sm"
+            className="w-full"
           >
             <Plus className="w-4 h-4" />
             Nova conversa
-          </button>
+          </Button>
         </div>
 
         {/* Quick Actions */}
@@ -202,9 +204,9 @@ export default function JarvisPage() {
                 <button
                   key={action.label}
                   onClick={action.action}
-                  className="flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-lg bg-bg-tertiary hover:bg-bg-surface transition-all text-fg-secondary hover:text-fg-primary text-center group hover:ring-1 hover:ring-blue-500/20"
+                  className="flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-lg bg-bg-tertiary hover:bg-bg-surface transition-all text-fg-secondary hover:text-fg-primary text-center group hover:ring-1 hover:ring-chat-ring"
                 >
-                  <Icon className="w-4 h-4 text-fg-muted group-hover:text-blue-400 transition-colors" />
+                  <Icon className="w-4 h-4 text-fg-muted group-hover:text-chat-accent transition-colors" />
                   <span className="text-[10px] font-medium leading-tight">{action.label}</span>
                 </button>
               )
@@ -215,13 +217,13 @@ export default function JarvisPage() {
         {/* Conversation History */}
         <div className="flex-1 overflow-y-auto px-3 py-4 space-y-1.5">
           {conversationsError && (
-            <div className="mb-3 px-3 py-2 rounded-lg border border-red-500/30 bg-red-500/10">
-              <p className="text-[11px] text-red-300">{conversationsError}</p>
+            <div className="mb-3 px-3 py-2 rounded-lg border border-accent-danger/30 bg-accent-danger/10">
+              <p className="text-[11px] text-accent-danger">{conversationsError}</p>
             </div>
           )}
           {loadingConversations ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-5 h-5 animate-spin text-fg-muted" />
+              <Spinner size="md" />
             </div>
           ) : conversations.length === 0 ? (
             <div className="text-center py-8">
@@ -240,13 +242,13 @@ export default function JarvisPage() {
                   key={conv.id}
                   className={`px-3 py-2.5 rounded-lg transition-colors group relative cursor-pointer ${
                     activeConversation === conv.id
-                      ? 'bg-blue-500/15 border border-blue-500/25'
+                      ? 'bg-chat-active-bg border border-chat-active-border'
                       : 'hover:bg-bg-tertiary border border-transparent'
                   }`}
                   onClick={() => handleSelectConversation(conv.id)}
                 >
                   <p className={`text-xs font-medium truncate pr-6 ${
-                    activeConversation === conv.id ? 'text-blue-400' : 'text-fg-secondary'
+                    activeConversation === conv.id ? 'text-chat-accent' : 'text-fg-secondary'
                   }`}>
                     {conv.title}
                   </p>
@@ -262,9 +264,9 @@ export default function JarvisPage() {
                   </div>
                   <button
                     onClick={(e) => { e.stopPropagation(); handleDeleteConversation(conv.id) }}
-                    className="absolute top-1/2 right-2 -translate-y-1/2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20"
+                    className="absolute top-1/2 right-2 -translate-y-1/2 p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity hover:bg-accent-danger/20"
                   >
-                    <Trash2 className="w-3 h-3 text-fg-muted hover:text-red-400" />
+                    <Trash2 className="w-3 h-3 text-fg-muted hover:text-accent-danger" />
                   </button>
                 </div>
               ))}
@@ -292,13 +294,13 @@ export default function JarvisPage() {
         <div className="px-6 py-4 border-b border-border-default bg-bg-secondary">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500/20 via-purple-500/15 to-cyan-500/20 flex items-center justify-center ring-1 ring-blue-500/10">
-                <Bot className="w-5 h-5 text-blue-400" />
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[var(--chat-gradient-from)] via-[var(--chat-gradient-via)] to-[var(--chat-gradient-to)] flex items-center justify-center ring-1 ring-chat-ring">
+                <Bot className="w-5 h-5 text-chat-accent" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h1 className="text-xl font-bold text-fg-primary">JARVIS</h1>
-                  <span className="px-1.5 py-0.5 rounded bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-cyan-500/20 text-[10px] font-bold text-blue-400 tracking-wide">3.0</span>
+                  <h1 className="text-xl font-bold text-fg-primary">HEXXON AI</h1>
+                  <span className="px-1.5 py-0.5 rounded bg-gradient-to-r from-[var(--chat-gradient-from)] via-[var(--chat-gradient-via)] to-[var(--chat-gradient-to)] text-[10px] font-bold text-chat-accent tracking-wide">3.0</span>
                 </div>
                 <p className="text-[11px] text-fg-muted">Copiloto omnisciente — Mission Mode, Learning Paths, Simulados</p>
               </div>

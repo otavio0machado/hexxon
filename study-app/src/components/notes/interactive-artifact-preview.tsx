@@ -3,7 +3,7 @@
 import { useEffect, useId, useMemo, useState } from "react";
 import type { InteractiveBlockFrame } from "@/lib/notes/renderable-blocks";
 
-const RESIZE_EVENT = "cogni:interactive-resize";
+const RESIZE_EVENT = "hexxon:interactive-resize";
 
 function clampHeight(value: number) {
   return Math.min(1200, Math.max(420, Math.round(value)));
@@ -177,9 +177,9 @@ export function InteractiveArtifactPreview({
   if (frame === "phone") {
     return (
       <div className="mx-auto w-full max-w-[420px]">
-        <div className="rounded-[40px] border border-white/10 bg-[#111216] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
-          <div className="mx-auto mb-3 h-1.5 w-24 rounded-full bg-white/10" />
-          <div className="overflow-hidden rounded-[28px] border border-white/10 bg-black">
+        <div className="rounded-[40px] border border-phone-border bg-phone-bg p-3 shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+          <div className="mx-auto mb-3 h-1.5 w-24 rounded-full bg-phone-notch" />
+          <div className="overflow-hidden rounded-[28px] border border-phone-border bg-phone-inner-bg">
             {iframe}
           </div>
         </div>

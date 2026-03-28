@@ -60,7 +60,7 @@ export function FloatingButton({
           }
         }}
         className="fixed bottom-6 right-6 w-14 h-14 rounded-full bg-accent-primary hover:bg-accent-primary/90 transition-all shadow-lg flex items-center justify-center group z-40"
-        aria-label="Abrir JARVIS"
+        aria-label="Abrir Hexxon AI"
       >
         <Bot className="w-6 h-6 text-bg-primary" />
 
@@ -101,12 +101,12 @@ export function FloatingButton({
           <div className="flex items-center justify-between px-4 py-3 border-b border-border-default bg-bg-secondary rounded-t-lg">
             <h2 className="font-semibold text-text-fg-primary flex items-center gap-2">
               <Bot className="w-4 h-4 text-accent-primary" />
-              JARVIS
+              HEXXON AI
             </h2>
             <button
               onClick={() => setIsOpen(false)}
               className="p-1 hover:bg-bg-tertiary rounded transition-colors"
-              aria-label="Fechar JARVIS"
+              aria-label="Fechar Hexxon AI"
             >
               <X className="w-5 h-5 text-text-fg-secondary" />
             </button>

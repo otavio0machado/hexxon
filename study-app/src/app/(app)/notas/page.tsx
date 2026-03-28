@@ -11,6 +11,7 @@ import {
   Check,
   X,
   RotateCcw,
+  Mic,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import {
@@ -31,7 +32,14 @@ import {
   getDisciplines,
   getAllTopics,
 } from '@/lib/services/disciplines'
-import { NotesWorkspace } from '@/components/notes/notes-workspace'
+import dynamic from 'next/dynamic'
+
+const NotesWorkspace = dynamic(
+  () => import('@/components/notes/notes-workspace').then(m => ({ default: m.NotesWorkspace })),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-xl bg-bg-tertiary" /> },
+)
+import { Spinner } from '@/components/ui/spinner'
+import { ConfirmModal } from '@/components/ui/modal'
 import type {
   Note,
   Flashcard,
@@ -427,6 +435,11 @@ export default function NotasPage() {
     type: 'all' as string,
   })
 
+  const [confirmDialog, setConfirmDialog] = useState<{
+    message: string
+    onConfirm: () => void
+  } | null>(null)
+
   // ─── Load Data ───────────────────────────────────────────────
 
   const loadData = useCallback(async () => {
@@ -508,18 +521,21 @@ export default function NotasPage() {
   }
 
   const handleDeleteNote = async (noteId: string) => {
-    if (!confirm('Tem certeza que deseja deletar esta nota?')) return
-
-    try {
-      await deleteNote(noteId)
-      setNotes(prev => prev.filter(n => n.id !== noteId))
-      showToast('Nota deletada com sucesso!')
-    } catch (err) {
-      showToast(
-        err instanceof Error ? err.message : 'Erro ao deletar nota',
-        'error'
-      )
-    }
+    setConfirmDialog({
+      message: 'Tem certeza que deseja deletar esta nota?',
+      onConfirm: async () => {
+        try {
+          await deleteNote(noteId)
+          setNotes(prev => prev.filter(n => n.id !== noteId))
+          showToast('Nota deletada com sucesso!')
+        } catch (err) {
+          showToast(
+            err instanceof Error ? err.message : 'Erro ao deletar nota',
+            'error'
+          )
+        }
+      },
+    })
   }
 
   // ─── Flashcard CRUD ───────────────────────────────────────────
@@ -547,18 +563,21 @@ export default function NotasPage() {
   }
 
   const handleDeleteFlashcard = async (cardId: string) => {
-    if (!confirm('Tem certeza que deseja deletar este flashcard?')) return
-
-    try {
-      await deleteFlashcard(cardId)
-      setFlashcards(prev => prev.filter(c => c.id !== cardId))
-      showToast('Flashcard deletado com sucesso!')
-    } catch (err) {
-      showToast(
-        err instanceof Error ? err.message : 'Erro ao deletar flashcard',
-        'error'
-      )
-    }
+    setConfirmDialog({
+      message: 'Tem certeza que deseja deletar este flashcard?',
+      onConfirm: async () => {
+        try {
+          await deleteFlashcard(cardId)
+          setFlashcards(prev => prev.filter(c => c.id !== cardId))
+          showToast('Flashcard deletado com sucesso!')
+        } catch (err) {
+          showToast(
+            err instanceof Error ? err.message : 'Erro ao deletar flashcard',
+            'error'
+          )
+        }
+      },
+    })
   }
 
   // ─── Filtering ───────────────────────────────────────────────
@@ -611,8 +630,8 @@ export default function NotasPage() {
     return (
       <div className="flex h-[calc(100vh-5rem)] items-center justify-center">
         <div className="text-center">
-          <div className="h-8 w-8 rounded-full border-2 border-accent-primary border-t-transparent animate-spin mx-auto mb-3"></div>
-          <p className="text-sm text-fg-secondary">Carregando...</p>
+          <Spinner size="lg" className="mx-auto mb-3" />
+          <p className="text-sm text-fg-secondary">Carregando notas e flashcards...</p>
         </div>
       </div>
     )
@@ -802,10 +821,13 @@ export default function NotasPage() {
                 <div className="flex-1 overflow-y-auto">
                   {filteredFlashcards.length === 0 ? (
                     <div className="flex items-center justify-center h-full">
-                      <div className="text-center">
-                        <Brain className="h-12 w-12 text-fg-muted/30 mx-auto mb-2" />
-                        <p className="text-sm text-fg-tertiary">
+                      <div className="text-center max-w-xs">
+                        <Brain className="h-12 w-12 text-fg-muted/30 mx-auto mb-3" />
+                        <p className="text-sm font-medium text-fg-secondary mb-1">
                           Nenhum flashcard encontrado
+                        </p>
+                        <p className="text-xs text-fg-muted">
+                          Crie flashcards manualmente ou peça ao HEXXON AI para gerar a partir dos seus materiais.
                         </p>
                       </div>
                     </div>
@@ -829,12 +851,12 @@ export default function NotasPage() {
                                 className={cn(
                                   'text-xs px-2 py-1 rounded font-medium',
                                   card.type === 'definition'
-                                    ? 'bg-blue-500/10 text-blue-400'
+                                    ? 'bg-accent-info/10 text-accent-info'
                                     : card.type === 'theorem'
-                                      ? 'bg-purple-500/10 text-purple-400'
+                                      ? 'bg-accent-primary/10 text-accent-primary'
                                       : card.type === 'procedure'
-                                        ? 'bg-green-500/10 text-green-400'
-                                        : 'bg-orange-500/10 text-orange-400'
+                                        ? 'bg-accent-success/10 text-accent-success'
+                                        : 'bg-accent-warning/10 text-accent-warning'
                                 )}
                               >
                                 {card.type === 'definition'
@@ -904,10 +926,13 @@ export default function NotasPage() {
           <div className="flex flex-col h-full">
             {filteredOralQuestions.length === 0 ? (
               <div className="flex items-center justify-center h-full">
-                <div className="text-center">
-                  <BookOpen className="h-12 w-12 text-fg-muted/30 mx-auto mb-2" />
-                  <p className="text-sm text-fg-tertiary">
+                <div className="text-center max-w-xs">
+                  <Mic className="h-12 w-12 text-fg-muted/30 mx-auto mb-3" />
+                  <p className="text-sm font-medium text-fg-secondary mb-1">
                     Nenhuma pergunta oral encontrada
+                  </p>
+                  <p className="text-xs text-fg-muted">
+                    Perguntas orais sao geradas automaticamente pelo HEXXON AI ao processar seus materiais.
                   </p>
                 </div>
               </div>
@@ -936,10 +961,10 @@ export default function NotasPage() {
                               className={cn(
                                 'px-2 py-1 rounded font-medium',
                                 question.difficulty === 'easy'
-                                  ? 'bg-green-500/10 text-green-400'
+                                  ? 'bg-accent-success/10 text-accent-success'
                                   : question.difficulty === 'medium'
-                                    ? 'bg-yellow-500/10 text-yellow-400'
-                                    : 'bg-red-500/10 text-red-400'
+                                    ? 'bg-accent-warning/10 text-accent-warning'
+                                    : 'bg-accent-danger/10 text-accent-danger'
                               )}
                             >
                               {question.difficulty === 'easy'
@@ -1010,26 +1035,37 @@ export default function NotasPage() {
       )}
 
       {/* Toast Notifications */}
-      <div className="fixed bottom-4 right-4 z-40 space-y-2">
+      <div className="fixed bottom-4 right-4 z-40 space-y-2 max-w-sm">
         {toasts.map(toast => (
           <div
             key={toast.id}
             className={cn(
-              'rounded-md px-4 py-3 text-sm font-medium flex items-center gap-2 animate-in fade-in slide-in-from-bottom-4 duration-300',
+              'rounded-lg px-4 py-3 text-sm font-medium flex items-center gap-2 shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-300',
               toast.type === 'success'
-                ? 'bg-accent-success/20 text-accent-success'
-                : 'bg-accent-danger/20 text-accent-danger'
+                ? 'bg-accent-success/20 text-accent-success border border-accent-success/30'
+                : 'bg-accent-danger/20 text-accent-danger border border-accent-danger/30'
             )}
           >
             {toast.type === 'success' ? (
-              <Check className="h-4 w-4" />
+              <Check className="h-4 w-4 shrink-0" />
             ) : (
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4 shrink-0" />
             )}
             {toast.message}
           </div>
         ))}
       </div>
+
+      <ConfirmModal
+        open={!!confirmDialog}
+        onClose={() => setConfirmDialog(null)}
+        onConfirm={() => confirmDialog?.onConfirm()}
+        title="Confirmar"
+        message={confirmDialog?.message ?? ''}
+        variant="danger"
+        confirmLabel="Deletar"
+        cancelLabel="Cancelar"
+      />
     </div>
   )
 }

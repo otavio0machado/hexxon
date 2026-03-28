@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function OnboardingAcademicoPage() {
   const router = useRouter();
@@ -57,30 +59,30 @@ export default function OnboardingAcademicoPage() {
       <form onSubmit={handleContinue} className="space-y-4">
         <div className="space-y-2">
           <label className="text-sm text-fg-secondary">Faculdade / Universidade</label>
-          <input
+          <Input
             value={form.university}
             onChange={(e) => update("university", e.target.value)}
             required
             placeholder="Ex: PUCRS"
-            className="w-full rounded-xl border border-border-default bg-bg-surface px-4 py-3 text-sm text-fg-primary placeholder-fg-muted focus:border-accent-primary focus:outline-none"
+            className="rounded-xl px-4 py-3"
           />
         </div>
 
         <div className="space-y-2">
           <label className="text-sm text-fg-secondary">Curso</label>
-          <input
+          <Input
             value={form.course}
             onChange={(e) => update("course", e.target.value)}
             required
             placeholder="Ex: Ciência da Computação"
-            className="w-full rounded-xl border border-border-default bg-bg-surface px-4 py-3 text-sm text-fg-primary placeholder-fg-muted focus:border-accent-primary focus:outline-none"
+            className="rounded-xl px-4 py-3"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-sm text-fg-secondary">Total de semestres</label>
-            <input
+            <Input
               type="number"
               value={form.total_semesters}
               onChange={(e) => update("total_semesters", e.target.value)}
@@ -88,12 +90,12 @@ export default function OnboardingAcademicoPage() {
               min={1}
               max={20}
               placeholder="8"
-              className="w-full rounded-xl border border-border-default bg-bg-surface px-4 py-3 text-sm text-fg-primary placeholder-fg-muted focus:border-accent-primary focus:outline-none"
+              className="rounded-xl px-4 py-3"
             />
           </div>
           <div className="space-y-2">
             <label className="text-sm text-fg-secondary">Semestre atual</label>
-            <input
+            <Input
               type="number"
               value={form.current_semester}
               onChange={(e) => update("current_semester", e.target.value)}
@@ -101,28 +103,24 @@ export default function OnboardingAcademicoPage() {
               min={1}
               max={20}
               placeholder="1"
-              className="w-full rounded-xl border border-border-default bg-bg-surface px-4 py-3 text-sm text-fg-primary placeholder-fg-muted focus:border-accent-primary focus:outline-none"
+              className="rounded-xl px-4 py-3"
             />
           </div>
         </div>
 
         <div className="space-y-2">
           <label className="text-sm text-fg-secondary">Período de ingresso</label>
-          <input
+          <Input
             value={form.enrollment_year}
             onChange={(e) => update("enrollment_year", e.target.value)}
             placeholder="Ex: 2026/1"
-            className="w-full rounded-xl border border-border-default bg-bg-surface px-4 py-3 text-sm text-fg-primary placeholder-fg-muted focus:border-accent-primary focus:outline-none"
+            className="rounded-xl px-4 py-3"
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-accent-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-accent-primary/90 disabled:opacity-50"
-        >
-          {loading ? "Salvando..." : "Continuar"}
-        </button>
+        <Button type="submit" loading={loading} className="w-full rounded-xl">
+          Continuar
+        </Button>
       </form>
     </div>
   );

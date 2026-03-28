@@ -17,6 +17,10 @@ import { getStudySessionsByDiscipline, getTotalStudyMinutes } from '@/lib/servic
 import { getNotesByDiscipline } from '@/lib/services/notes'
 import { getFlashcardsByDiscipline } from '@/lib/services/flashcards'
 import type { Discipline, Module, Topic, Assessment, StudySession, Note, Flashcard } from '@/lib/supabase'
+import { useToast } from '@/components/ui/toast'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Spinner } from '@/components/ui/spinner'
 import { MasteryDot } from '@/components/ui/mastery-dot'
 import { ScoreDisplay } from '@/components/ui/score-display'
 import { ProgressBar } from '@/components/ui/progress-bar'
@@ -46,6 +50,7 @@ export default function DisciplinePage() {
   const params = useParams()
   const id = params.id as string
 
+  const toast = useToast()
   const [discipline, setDiscipline] = useState<Discipline | null>(null)
   const [modules, setModules] = useState<ModuleWithTopics[]>([])
   const [assessments, setAssessments] = useState<Assessment[]>([])
@@ -138,7 +143,7 @@ export default function DisciplinePage() {
 
     const score = parseFloat(scoreStr)
     if (isNaN(score)) {
-      alert('Pontuação inválida')
+      toast.error('Pontuação inválida')
       return
     }
 
@@ -151,7 +156,7 @@ export default function DisciplinePage() {
       )
       setEditingAssessment(null)
     } catch (err) {
-      alert('Erro ao salvar pontuação: ' + (err instanceof Error ? err.message : ''))
+      toast.error('Erro ao salvar pontuação: ' + (err instanceof Error ? err.message : 'Erro desconhecido'))
     }
   }
 
@@ -241,22 +246,22 @@ export default function DisciplinePage() {
               </span>
               {editingAssessment === assessment.id ? (
                 <div className="flex gap-1">
-                  <input
+                  <Input
                     type="number"
-                    min="0"
-                    max="10"
-                    step="0.5"
+                    min={0}
+                    max={10}
+                    step={0.5}
                     value={scoreInputs[assessment.id] ?? ''}
                     onChange={(e) => handleScoreChange(assessment.id, e.target.value)}
-                    className="w-12 rounded px-1 py-0.5 bg-bg-tertiary text-fg-primary text-sm font-mono border border-border-default"
+                    className="w-14 px-1 py-0.5 text-sm font-mono"
                     autoFocus
                   />
-                  <button
+                  <Button
+                    size="sm"
                     onClick={() => handleScoreSave(assessment.id)}
-                    className="rounded px-1.5 py-0.5 bg-accent-info text-bg-primary text-xs font-medium hover:opacity-80"
                   >
                     OK
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 <button

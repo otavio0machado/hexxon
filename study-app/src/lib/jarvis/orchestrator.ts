@@ -344,7 +344,7 @@ function generatePostActions(
       label: 'Salvar como nota',
       icon: 'StickyNote',
       action: 'createNote',
-      params: { content, title: `${topicName || 'Nota'} — Jarvis`, format: 'summary', topic_id: context.currentTopicId, discipline_id: context.currentDisciplineId },
+      params: { content, title: `${topicName || 'Nota'} — Hexxon AI`, format: 'summary', topic_id: context.currentTopicId, discipline_id: context.currentDisciplineId },
       variant: 'primary',
     })
     actions.push({

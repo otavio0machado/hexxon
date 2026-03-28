@@ -7,6 +7,9 @@ import type { GraphWithMastery } from "@/lib/services/knowledge-graph";
 import type { Discipline } from "@/lib/supabase";
 import { cn, masteryColor, masteryTextColor } from "@/lib/utils";
 import { AlertCircle, ArrowRight, ChevronDown, ChevronUp } from "lucide-react";
+import { Select } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 
 type SideView = "filters" | "detail" | "weaknesses";
 
@@ -134,7 +137,7 @@ export default function MapaPage() {
         {/* Graph SVG */}
         {loading ? (
           <div className="flex-1 rounded-md border border-border-default bg-bg-surface flex items-center justify-center">
-            <p className="text-sm text-fg-tertiary">Carregando grafo...</p>
+            <Spinner size="lg" />
           </div>
         ) : filteredGraph ? (
           <div className="flex-1 rounded-md border border-border-default bg-bg-surface overflow-hidden">
@@ -338,38 +341,35 @@ export default function MapaPage() {
 
               <div>
                 <label className="text-xs font-medium text-fg-secondary block mb-1">Disciplina</label>
-                <select
+                <Select
                   value={filters.discipline}
                   onChange={(e) => setFilters({ ...filters, discipline: e.target.value })}
-                  className="w-full rounded border border-border-default bg-bg-primary px-2 py-1 text-xs text-fg-primary"
                 >
                   <option value="all">Todas</option>
                   {disciplines.map(d => (
                     <option key={d.id} value={d.id}>{d.name}</option>
                   ))}
-                </select>
+                </Select>
               </div>
 
               <div>
                 <label className="text-xs font-medium text-fg-secondary block mb-1">Tipo</label>
-                <select
+                <Select
                   value={filters.kind}
                   onChange={(e) => setFilters({ ...filters, kind: e.target.value })}
-                  className="w-full rounded border border-border-default bg-bg-primary px-2 py-1 text-xs text-fg-primary"
                 >
                   <option value="all">Todos</option>
                   <option value="concept">Conceito</option>
                   <option value="formula">Fórmula</option>
                   <option value="theorem">Teorema</option>
-                </select>
+                </Select>
               </div>
 
               <div>
                 <label className="text-xs font-medium text-fg-secondary block mb-1">Mastery</label>
-                <select
+                <Select
                   value={filters.mastery}
                   onChange={(e) => setFilters({ ...filters, mastery: e.target.value })}
-                  className="w-full rounded border border-border-default bg-bg-primary px-2 py-1 text-xs text-fg-primary"
                 >
                   <option value="all">Todos</option>
                   <option value="none">None</option>
@@ -377,17 +377,16 @@ export default function MapaPage() {
                   <option value="developing">Developing</option>
                   <option value="proficient">Proficient</option>
                   <option value="mastered">Mastered</option>
-                </select>
+                </Select>
               </div>
 
               <div>
                 <label className="text-xs font-medium text-fg-secondary block mb-1">Buscar</label>
-                <input
+                <Input
                   type="text"
                   value={filters.search}
                   onChange={(e) => setFilters({ ...filters, search: e.target.value })}
                   placeholder="Digite para buscar..."
-                  className="w-full rounded border border-border-default bg-bg-primary px-2 py-1 text-xs text-fg-primary"
                 />
               </div>
 

@@ -5,9 +5,14 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import type { ComponentPropsWithoutRef } from "react";
+import dynamic from "next/dynamic";
 import "katex/dist/katex.min.css";
 import { InteractiveArtifactPreview } from "./interactive-artifact-preview";
-import { MermaidDiagram } from "./mermaid-diagram";
+
+const MermaidDiagram = dynamic(
+  () => import("./mermaid-diagram").then((m) => ({ default: m.MermaidDiagram })),
+  { ssr: false, loading: () => <div className="h-32 animate-pulse rounded bg-bg-tertiary" /> },
+);
 
 export function MarkdownPreview({ content }: { content: string }) {
   return (

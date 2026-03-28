@@ -9,6 +9,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ConfirmModal } from "@/components/ui/modal";
 import {
   createInsertedBlockText,
   parseRenderableNoteContent,
@@ -195,6 +196,10 @@ export function NotesWorkspace({
   const [flashcardRequest, setFlashcardRequest] = useState("");
   const [flashcardCount, setFlashcardCount] = useState(5);
   const [draggedBlockIndex, setDraggedBlockIndex] = useState<number | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
   const titleRef = useRef<HTMLInputElement | null>(null);
   const cursorRef = useRef({ itemIndex: 0, start: 0, end: 0 });
 
@@ -385,7 +390,16 @@ export function NotesWorkspace({
 
     if (isDirty) {
       const saved = await persistDraft(false);
-      if (!saved && !window.confirm("Existem alterações não salvas. Deseja descartá-las?")) {
+      if (!saved) {
+        setConfirmDialog({
+          message: "Existem alterações não salvas. Deseja descartá-las?",
+          onConfirm: () => {
+            setIsCreatingNote(false);
+            setActiveNoteId(note.id);
+            setMetaOpen(false);
+            setDraggedBlockIndex(null);
+          },
+        });
         return;
       }
     }
@@ -397,23 +411,31 @@ export function NotesWorkspace({
   }
 
   async function handleCreateNote() {
+    const doCreate = () => {
+      const blank = buildBlankDraft(disciplines, topics, preferredDisciplineId);
+      setIsCreatingNote(true);
+      setActiveNoteId(null);
+      setDraft(blank);
+      setSavedSnapshot(snapshotDraft(blank));
+      setContentFormat(noteFormatToAiFormat(blank.format));
+      setMetaOpen(false);
+      setGraphError(null);
+      setInteractiveError(null);
+      requestAnimationFrame(() => titleRef.current?.focus());
+    };
+
     if (isDirty) {
       const saved = await persistDraft(false);
-      if (!saved && !window.confirm("Existem alterações não salvas. Deseja descartá-las e criar uma nova nota?")) {
+      if (!saved) {
+        setConfirmDialog({
+          message: "Existem alterações não salvas. Deseja descartá-las e criar uma nova nota?",
+          onConfirm: doCreate,
+        });
         return;
       }
     }
 
-    const blank = buildBlankDraft(disciplines, topics, preferredDisciplineId);
-    setIsCreatingNote(true);
-    setActiveNoteId(null);
-    setDraft(blank);
-    setSavedSnapshot(snapshotDraft(blank));
-    setContentFormat(noteFormatToAiFormat(blank.format));
-    setMetaOpen(false);
-    setGraphError(null);
-    setInteractiveError(null);
-    requestAnimationFrame(() => titleRef.current?.focus());
+    doCreate();
   }
 
   function updateDraft<K extends keyof NoteDraft>(key: K, value: NoteDraft[K]) {
@@ -440,32 +462,26 @@ export function NotesWorkspace({
       return;
     }
 
-    if (!window.confirm("Tem certeza que deseja deletar esta nota?")) {
-      return;
-    }
-
-    try {
-      await onDeleteNote(activeNoteId);
-      const fallback =
-        filteredNotes.find((note) => note.id !== activeNoteId) ??
-        notes.find((note) => note.id !== activeNoteId) ??
-        null;
-      setIsCreatingNote(!fallback);
-      setActiveNoteId(fallback?.id ?? null);
-      if (!fallback) {
-        const blank = buildBlankDraft(disciplines, topics, preferredDisciplineId);
-        setDraft(blank);
-        setSavedSnapshot(snapshotDraft(blank));
-        setContentFormat(noteFormatToAiFormat(blank.format));
-      }
-      setMetaOpen(false);
-      setDraggedBlockIndex(null);
-    } catch (error) {
-      onToast(
-        error instanceof Error ? error.message : "Erro ao deletar nota.",
-        "error",
-      );
-    }
+    setConfirmDialog({
+      message: "Tem certeza que deseja deletar esta nota?",
+      onConfirm: async () => {
+        try {
+          await onDeleteNote(activeNoteId!);
+          const fallback =
+            filteredNotes.find((note) => note.id !== activeNoteId) ??
+            notes.find((note) => note.id !== activeNoteId) ??
+            null;
+          setIsCreatingNote(!fallback);
+          setActiveNoteId(fallback?.id ?? null);
+          onToast("Nota deletada.");
+        } catch (err) {
+          onToast(
+            `Erro ao deletar nota: ${err instanceof Error ? err.message : "erro desconhecido"}`,
+            "error",
+          );
+        }
+      },
+    });
   }
 
   function updateTextItem(itemIndex: number, text: string) {
@@ -1352,6 +1368,17 @@ export function NotesWorkspace({
           onGenerate={handleGenerateInteractive}
         />
       )}
+
+      <ConfirmModal
+        open={!!confirmDialog}
+        onClose={() => setConfirmDialog(null)}
+        onConfirm={() => confirmDialog?.onConfirm()}
+        title="Confirmar"
+        message={confirmDialog?.message ?? ""}
+        variant="danger"
+        confirmLabel="Descartar"
+        cancelLabel="Cancelar"
+      />
     </>
   );
 }

@@ -13,6 +13,11 @@ import { getDisciplines } from "@/lib/services/disciplines";
 import { formatCountdown, countdownColor } from "@/lib/utils";
 import type { Assessment, Discipline, AssessmentStatus } from "@/lib/supabase";
 import { Calendar, Zap, TrendingUp, Clock, CheckCircle2, AlertCircle } from "lucide-react";
+import { Button } from '@/components/ui/button'
+import { Select } from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Spinner } from '@/components/ui/spinner'
+import { EmptyState } from '@/components/ui/empty-state'
 
 type FilterType = "all" | "prova" | "trabalho" | "ps" | "g2";
 type FilterStatus = "all" | "upcoming" | "ready" | "completed";
@@ -241,9 +246,11 @@ export default function ProvasPage() {
         <h1 className="text-2xl font-semibold tracking-tight text-fg-primary">
           Provas
         </h1>
-        <div className="rounded-md border border-border-default bg-bg-surface p-8 text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-2 border-accent-primary border-t-transparent" />
-          <p className="mt-2 text-sm text-fg-tertiary">Carregando avaliações...</p>
+        <div className="flex min-h-[50vh] items-center justify-center rounded-md border border-border-default bg-bg-surface">
+          <div className="text-center">
+            <Spinner size="lg" />
+            <p className="mt-2 text-sm text-fg-tertiary">Carregando avaliações...</p>
+          </div>
         </div>
       </div>
     );
@@ -329,10 +336,10 @@ export default function ProvasPage() {
             <span className="text-xs font-medium text-fg-muted uppercase">
               Disciplina:
             </span>
-            <select
+            <Select
               value={filterDiscipline}
               onChange={(e) => setFilterDiscipline(e.target.value)}
-              className="rounded-sm border border-border-default bg-bg-surface px-2 py-1 text-xs text-fg-secondary outline-none"
+              className="w-auto rounded-sm px-2 py-1 text-xs"
             >
               <option value="all">Todas</option>
               {Array.from(disciplines.values()).map((d) => (
@@ -340,18 +347,19 @@ export default function ProvasPage() {
                   {d.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         )}
       </div>
 
       {/* Assessments grouped by discipline */}
       {grouped.size === 0 ? (
-        <div className="rounded-md border border-border-default bg-bg-surface p-8 text-center">
-          <Calendar className="mx-auto h-8 w-8 text-fg-muted" />
-          <p className="mt-2 text-sm text-fg-tertiary">
-            Nenhuma avaliação encontrada com os filtros aplicados.
-          </p>
+        <div className="rounded-md border border-border-default bg-bg-surface">
+          <EmptyState
+            icon={<Calendar className="h-8 w-8" />}
+            title="Nenhuma avaliação encontrada"
+            description="Tente ajustar os filtros."
+          />
         </div>
       ) : (
         <div className="space-y-4">
@@ -446,7 +454,7 @@ export default function ProvasPage() {
                                 <div className="flex gap-2">
                                   {scoreInput?.assessmentId === assessment.id ? (
                                     <>
-                                      <input
+                                      <Input
                                         type="number"
                                         min="0"
                                         max="10"
@@ -463,7 +471,7 @@ export default function ProvasPage() {
                                           )
                                         }
                                         placeholder="Ex: 8.5"
-                                        className="w-20 rounded border border-border-default bg-bg-primary px-2 py-1 text-sm text-fg-primary outline-none"
+                                        className="w-20 rounded px-2 py-1 text-sm"
                                         disabled={scoreInput.isLoading}
                                       />
                                       <button
@@ -540,7 +548,7 @@ export default function ProvasPage() {
                                 <div>
                                   {aiPlanLoading === assessment.id ? (
                                     <div className="flex items-center gap-2 rounded border border-accent-primary/30 bg-accent-primary/5 p-2">
-                                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-accent-primary border-t-transparent" />
+                                      <Spinner size="sm" />
                                       <span className="text-xs text-fg-tertiary">
                                         Gerando plano com IA...
                                       </span>

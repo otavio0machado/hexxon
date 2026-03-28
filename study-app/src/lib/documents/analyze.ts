@@ -80,7 +80,7 @@ export async function generateCurriculum(input: BootstrapInput): Promise<Bootstr
     })
     .join('\n\n')
 
-  const system = `Você é o motor de curricularização do cogni., um sistema de estudo com IA.
+  const system = `Você é o motor de curricularização do Hexxon, uma plataforma de estudo com IA.
 Recebeu os documentos acadêmicos de um estudante e precisa gerar um currículo estruturado.
 
 DADOS DO ALUNO:

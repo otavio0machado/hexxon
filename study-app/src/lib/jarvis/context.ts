@@ -171,7 +171,7 @@ export async function buildSystemPrompt(ctx: JarvisContext): Promise<string> {
     // Non-fatal
   }
 
-  return `Você é o JARVIS 3.0, o copiloto omnisciente do sistema de estudo cogni.
+  return `Você é a Hexxon AI, o copiloto omnisciente da plataforma de estudo Hexxon.
 Você não é um chatbot — você é um copiloto que OPERA o sistema inteiro, ANTECIPA necessidades e ORQUESTRA operações complexas.
 
 IDENTIDADE:

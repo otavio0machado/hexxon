@@ -4,6 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function RegistroPage() {
   const [fullName, setFullName] = useState("");
@@ -39,7 +41,6 @@ export default function RegistroPage() {
       return;
     }
 
-    // Create user profile
     if (data.user) {
       await supabase.from("user_profiles").insert({
         id: data.user.id,
@@ -69,7 +70,7 @@ export default function RegistroPage() {
     <div className="w-full max-w-sm space-y-8 px-4">
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold text-fg-primary">
-          cogni<span className="text-accent-primary">.</span>
+          HEXXON
         </h1>
         <p className="text-sm text-fg-secondary">Crie sua conta</p>
       </div>
@@ -77,41 +78,44 @@ export default function RegistroPage() {
       <form onSubmit={handleSignUp} className="space-y-4">
         <div className="space-y-2">
           <label className="text-sm text-fg-secondary" htmlFor="name">Nome completo</label>
-          <input
+          <Input
             id="name"
             type="text"
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             required
-            className="w-full rounded-xl border border-border-default bg-bg-surface px-4 py-3 text-sm text-fg-primary placeholder-fg-muted focus:border-accent-primary focus:outline-none"
             placeholder="Seu nome"
+            error={!!error}
+            className="rounded-xl px-4 py-3"
           />
         </div>
 
         <div className="space-y-2">
           <label className="text-sm text-fg-secondary" htmlFor="email">Email</label>
-          <input
+          <Input
             id="email"
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full rounded-xl border border-border-default bg-bg-surface px-4 py-3 text-sm text-fg-primary placeholder-fg-muted focus:border-accent-primary focus:outline-none"
             placeholder="seu@email.com"
+            error={!!error}
+            className="rounded-xl px-4 py-3"
           />
         </div>
 
         <div className="space-y-2">
           <label className="text-sm text-fg-secondary" htmlFor="password">Senha</label>
-          <input
+          <Input
             id="password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
             minLength={6}
-            className="w-full rounded-xl border border-border-default bg-bg-surface px-4 py-3 text-sm text-fg-primary placeholder-fg-muted focus:border-accent-primary focus:outline-none"
             placeholder="Mínimo 6 caracteres"
+            error={!!error}
+            className="rounded-xl px-4 py-3"
           />
         </div>
 
@@ -119,13 +123,13 @@ export default function RegistroPage() {
           <p className="text-sm text-accent-danger">{error}</p>
         )}
 
-        <button
+        <Button
           type="submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-accent-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-accent-primary/90 disabled:opacity-50"
+          loading={loading}
+          className="w-full rounded-xl py-3"
         >
-          {loading ? "Criando conta..." : "Criar conta"}
-        </button>
+          Criar conta
+        </Button>
       </form>
 
       <div className="relative">
@@ -137,12 +141,13 @@ export default function RegistroPage() {
         </div>
       </div>
 
-      <button
+      <Button
+        variant="outline"
         onClick={handleGoogleSignUp}
-        className="w-full rounded-xl border border-border-default py-3 text-sm font-medium text-fg-secondary transition-colors hover:bg-bg-secondary"
+        className="w-full rounded-xl py-3"
       >
         Continuar com Google
-      </button>
+      </Button>
 
       <p className="text-center text-sm text-fg-muted">
         Já tem conta?{" "}

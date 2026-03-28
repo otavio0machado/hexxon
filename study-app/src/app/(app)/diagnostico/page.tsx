@@ -5,7 +5,13 @@ import { getErrorOccurrences, resolveError, createErrorOccurrence } from "@/lib/
 import { getDisciplines, getAllTopics } from "@/lib/services/disciplines";
 import type { ErrorOccurrence, Discipline, Topic, ErrorCategory, ErrorSeverity } from "@/lib/supabase";
 import { Badge } from "@/components/ui/badge";
-import { AlertCircle, CheckCircle, Plus, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Modal } from "@/components/ui/modal";
+import { Spinner } from "@/components/ui/spinner";
+import { EmptyState } from "@/components/ui/empty-state";
+import { AlertCircle, CheckCircle, Plus } from "lucide-react";
 
 type FilterStatus = "all" | "resolved" | "unresolved";
 
@@ -177,8 +183,8 @@ export default function DiagnosticoPage() {
 
       {/* Overview */}
       {loading ? (
-        <div className="rounded-md border border-border-default bg-bg-surface p-8 text-center">
-          <p className="text-sm text-fg-tertiary">Carregando diagnóstico...</p>
+        <div className="flex items-center justify-center py-12">
+          <Spinner size="lg" />
         </div>
       ) : (
         <div className="grid grid-cols-4 gap-4">
@@ -265,25 +271,23 @@ export default function DiagnosticoPage() {
           ))}
 
           {/* Discipline filter */}
-          <select
+          <Select
             value={filterDisc}
             onChange={(e) => setFilterDisc(e.target.value)}
-            className="ml-auto rounded-sm border border-border-default bg-bg-primary px-2 py-0.5 text-xs text-fg-secondary"
+            className="ml-auto w-auto rounded-sm px-2 py-0.5 text-xs"
           >
             <option value="all">Todas as Disciplinas</option>
             {disciplines.map(d => (
               <option key={d.id} value={d.id}>{d.name}</option>
             ))}
-          </select>
+          </Select>
 
           <span className="font-mono text-xs text-fg-muted">{filtered.length} erros</span>
         </div>
 
         <div className="space-y-2 max-h-96 overflow-y-auto">
           {filtered.length === 0 ? (
-            <div className="rounded-md border border-border-default bg-bg-surface p-8 text-center">
-              <p className="text-sm text-fg-tertiary">Nenhum erro encontrado</p>
-            </div>
+            <EmptyState title="Nenhum erro encontrado" description="Tente ajustar os filtros." />
           ) : (
             filtered.map(err => {
               const topic = topics.find(t => t.id === err.topic_id);
@@ -358,117 +362,101 @@ export default function DiagnosticoPage() {
       </div>
 
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-bg-surface border border-border-default rounded-md p-6 max-w-md w-full space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-fg-primary">Classificar Novo Erro</h2>
-              <button onClick={() => setShowModal(false)} className="text-fg-tertiary hover:text-fg-secondary">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+      <Modal open={showModal} onClose={() => setShowModal(false)} title="Classificar Novo Erro">
+        <div className="space-y-3 max-h-96 overflow-y-auto">
+          <div>
+            <label className="text-xs font-medium text-fg-secondary block mb-1">Enunciado do Exercício</label>
+            <Textarea
+              value={formData.exercise_statement}
+              onChange={(e) => setFormData({ ...formData, exercise_statement: e.target.value })}
+              rows={2}
+              placeholder="Digite o enunciado..."
+            />
+          </div>
 
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              <div>
-                <label className="text-xs font-medium text-fg-secondary block mb-1">Enunciado do Exercício</label>
-                <textarea
-                  value={formData.exercise_statement}
-                  onChange={(e) => setFormData({ ...formData, exercise_statement: e.target.value })}
-                  className="w-full rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm text-fg-primary resize-none"
-                  rows={2}
-                  placeholder="Digite o enunciado..."
-                />
-              </div>
+          <div>
+            <label className="text-xs font-medium text-fg-secondary block mb-1">Resposta do Aluno</label>
+            <Textarea
+              value={formData.student_answer}
+              onChange={(e) => setFormData({ ...formData, student_answer: e.target.value })}
+              rows={2}
+              placeholder="O que o aluno respondeu..."
+            />
+          </div>
 
-              <div>
-                <label className="text-xs font-medium text-fg-secondary block mb-1">Resposta do Aluno</label>
-                <textarea
-                  value={formData.student_answer}
-                  onChange={(e) => setFormData({ ...formData, student_answer: e.target.value })}
-                  className="w-full rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm text-fg-primary resize-none"
-                  rows={2}
-                  placeholder="O que o aluno respondeu..."
-                />
-              </div>
+          <div>
+            <label className="text-xs font-medium text-fg-secondary block mb-1">Resposta Correta</label>
+            <Textarea
+              value={formData.correct_answer}
+              onChange={(e) => setFormData({ ...formData, correct_answer: e.target.value })}
+              rows={2}
+              placeholder="A resposta correta..."
+            />
+          </div>
 
-              <div>
-                <label className="text-xs font-medium text-fg-secondary block mb-1">Resposta Correta</label>
-                <textarea
-                  value={formData.correct_answer}
-                  onChange={(e) => setFormData({ ...formData, correct_answer: e.target.value })}
-                  className="w-full rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm text-fg-primary resize-none"
-                  rows={2}
-                  placeholder="A resposta correta..."
-                />
-              </div>
+          <div>
+            <label className="text-xs font-medium text-fg-secondary block mb-1">Disciplina</label>
+            <Select
+              value={formData.discipline_id}
+              onChange={(e) => setFormData({ ...formData, discipline_id: e.target.value })}
+            >
+              <option value="">Selecione uma disciplina</option>
+              {disciplines.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </Select>
+          </div>
 
-              <div>
-                <label className="text-xs font-medium text-fg-secondary block mb-1">Disciplina</label>
-                <select
-                  value={formData.discipline_id}
-                  onChange={(e) => setFormData({ ...formData, discipline_id: e.target.value })}
-                  className="w-full rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm text-fg-primary"
-                >
-                  <option value="">Selecione uma disciplina</option>
-                  {disciplines.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <div>
+            <label className="text-xs font-medium text-fg-secondary block mb-1">Tópico</label>
+            <Select
+              value={formData.topic_id}
+              onChange={(e) => setFormData({ ...formData, topic_id: e.target.value })}
+            >
+              <option value="">Selecione um tópico</option>
+              {topics
+                .filter(t => !formData.discipline_id || t.discipline_id === formData.discipline_id)
+                .map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+            </Select>
+          </div>
 
-              <div>
-                <label className="text-xs font-medium text-fg-secondary block mb-1">Tópico</label>
-                <select
-                  value={formData.topic_id}
-                  onChange={(e) => setFormData({ ...formData, topic_id: e.target.value })}
-                  className="w-full rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm text-fg-primary"
-                >
-                  <option value="">Selecione um tópico</option>
-                  {topics
-                    .filter(t => !formData.discipline_id || t.discipline_id === formData.discipline_id)
-                    .map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="text-xs font-medium text-fg-secondary block mb-1">Categoria de Erro</label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value as ErrorCategory })}
-                  className="w-full rounded-md border border-border-default bg-bg-primary px-3 py-2 text-sm text-fg-primary"
-                >
-                  {Object.entries(CATEGORY_MAP).map(([key, label]) => (
-                    <option key={key} value={key}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <button
-                onClick={() => setShowModal(false)}
-                className="flex-1 rounded-md border border-border-default px-3 py-2 text-sm text-fg-secondary hover:text-fg-primary transition-colors"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleCreateError}
-                className="flex-1 rounded-md bg-accent-primary px-3 py-2 text-sm text-bg-primary font-medium hover:bg-accent-primary/90 transition-colors"
-              >
-                Classificar
-              </button>
-            </div>
+          <div>
+            <label className="text-xs font-medium text-fg-secondary block mb-1">Categoria de Erro</label>
+            <Select
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value as ErrorCategory })}
+            >
+              {Object.entries(CATEGORY_MAP).map(([key, label]) => (
+                <option key={key} value={key}>
+                  {label}
+                </option>
+              ))}
+            </Select>
           </div>
         </div>
-      )}
+
+        <div className="flex gap-2 pt-4">
+          <Button
+            variant="secondary"
+            className="flex-1"
+            onClick={() => setShowModal(false)}
+          >
+            Cancelar
+          </Button>
+          <Button
+            className="flex-1"
+            onClick={handleCreateError}
+          >
+            Classificar
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

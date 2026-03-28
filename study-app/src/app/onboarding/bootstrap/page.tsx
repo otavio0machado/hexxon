@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
 
 type BootstrapPhase =
   | "idle"
@@ -174,7 +175,7 @@ export default function OnboardingBootstrapPage() {
         <div className="space-y-4">
           <div className="text-6xl">🧠</div>
           <h1 className="text-2xl font-bold text-fg-primary">
-            Jarvis esta configurando seu sistema...
+            Hexxon AI esta configurando seu sistema...
           </h1>
           <p className="text-sm text-fg-secondary max-w-md mx-auto">
             {statusText}
@@ -243,7 +244,8 @@ export default function OnboardingBootstrapPage() {
           </p>
         </div>
         <div className="flex gap-3 justify-center">
-          <button
+          <Button
+            variant="secondary"
             onClick={() => {
               setError(null);
               setPhase("idle");
@@ -251,16 +253,16 @@ export default function OnboardingBootstrapPage() {
               setProgress(0);
               runBootstrap();
             }}
-            className="rounded-xl border border-border-default px-6 py-3 text-sm font-medium text-fg-secondary hover:bg-bg-secondary"
+            className="rounded-xl px-6 py-3"
           >
             Tentar novamente
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleFinish}
-            className="rounded-xl bg-accent-primary px-6 py-3 text-sm font-semibold text-white hover:bg-accent-primary/90"
+            className="rounded-xl px-6 py-3"
           >
             Pular e ir para o Dashboard
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -274,7 +276,7 @@ export default function OnboardingBootstrapPage() {
         <h1 className="text-2xl font-bold text-fg-primary">
           {data?.hasLegacyData
             ? "Dados existentes preservados!"
-            : "Jarvis configurou seu sistema!"}
+            : "Hexxon AI configurou seu sistema!"}
         </h1>
         <p className="text-sm text-fg-secondary max-w-lg mx-auto">
           {data?.hasLegacyData
@@ -365,12 +367,13 @@ export default function OnboardingBootstrapPage() {
 
       {/* Finish button */}
       <div className="text-center">
-        <button
+        <Button
           onClick={handleFinish}
-          className="rounded-xl bg-accent-primary px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent-primary/90"
+          size="lg"
+          className="rounded-xl px-8"
         >
-          Esta tudo certo — comecar a usar o cogni.
-        </button>
+          Esta tudo certo — comecar a usar o Hexxon
+        </Button>
       </div>
     </div>
   );

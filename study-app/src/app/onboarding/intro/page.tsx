@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Button } from "@/components/ui/button";
 
 export default function OnboardingIntroPage() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function OnboardingIntroPage() {
       <div className="space-y-4">
         <div className="text-6xl">🤖</div>
         <h1 className="text-3xl font-bold text-fg-primary">
-          Eu sou o Jarvis.
+          Eu sou a Hexxon AI.
         </h1>
         <p className="text-lg text-fg-secondary leading-relaxed max-w-lg mx-auto">
           Vou ser seu copiloto de estudo. Conheço técnicas de repetição espaçada,
@@ -53,12 +54,9 @@ export default function OnboardingIntroPage() {
         </div>
       </div>
 
-      <button
-        onClick={handleContinue}
-        className="rounded-xl bg-accent-primary px-8 py-3 text-sm font-semibold text-white transition-colors hover:bg-accent-primary/90"
-      >
+      <Button onClick={handleContinue} size="lg" className="rounded-xl px-8">
         Vamos começar
-      </button>
+      </Button>
     </div>
   );
 }

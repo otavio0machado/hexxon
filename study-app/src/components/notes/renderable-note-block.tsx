@@ -2,7 +2,12 @@
 
 import { Copy, GripVertical, Trash2 } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { MermaidDiagram } from "./mermaid-diagram";
+import dynamic from "next/dynamic";
+
+const MermaidDiagram = dynamic(
+  () => import("./mermaid-diagram").then((m) => ({ default: m.MermaidDiagram })),
+  { ssr: false, loading: () => <div className="h-32 animate-pulse rounded bg-bg-tertiary" /> },
+);
 import type { RenderableBlockMode } from "@/lib/notes/renderable-blocks";
 import { cn } from "@/lib/utils";
 
@@ -75,7 +80,7 @@ export function RenderableNoteBlock({
         dragging && "opacity-40",
       )}
     >
-      <div className="overflow-hidden rounded-3xl border border-border-default bg-bg-primary shadow-[0_18px_50px_rgba(0,0,0,0.18)]">
+      <div className="overflow-hidden rounded-3xl border border-border-default bg-bg-primary shadow-[var(--note-block-shadow)]">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border-default/70 px-4 py-3">
           <div className="flex items-center gap-2">
             <button

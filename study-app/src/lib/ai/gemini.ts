@@ -48,7 +48,9 @@ function log(level: LogLevel, service: string, message: string, meta?: Record<st
   } else if (level === 'warn') {
     console.warn(`${timestamp} ${prefix} ${message}${metaStr}`)
   } else {
-    console.log(`${timestamp} ${prefix} ${message}${metaStr}`)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`${timestamp} ${prefix} ${message}${metaStr}`)
+    }
   }
 }
 

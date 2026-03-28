@@ -130,7 +130,7 @@ export function UserDocumentsPanel({
                       }
                     }
                   })
-                  .catch(() => {});
+                  .catch(() => console.warn('Background document analysis failed'));
               }
             })
             .catch(() => {
@@ -159,7 +159,7 @@ export function UserDocumentsPanel({
             Meus Documentos
           </h2>
           <p className="text-sm text-fg-tertiary">
-            Documentos enviados e processados pelo Jarvis. Adicione mais a
+            Documentos enviados e processados pela Hexxon AI. Adicione mais a
             qualquer momento.
           </p>
         </div>
@@ -200,7 +200,7 @@ export function UserDocumentsPanel({
         <div className="rounded-2xl border-2 border-dashed border-border-default bg-bg-surface p-8 text-center">
           <p className="text-sm text-fg-muted">
             Nenhum documento enviado ainda. Envie planos de ensino, listas,
-            slides ou provas anteriores para o Jarvis processar.
+            slides ou provas anteriores para a Hexxon AI processar.
           </p>
         </div>
       ) : (
