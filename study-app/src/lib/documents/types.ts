@@ -47,7 +47,7 @@ export interface UserDocument {
   word_count: number | null
   uploaded_at: string
   processed_at: string | null
-  source: 'onboarding' | 'materiais_page' | 'jarvis'
+  source: 'onboarding' | 'materiais_page' | 'hexxon-ai'
   replaces_document_id: string | null
   version: number
 }

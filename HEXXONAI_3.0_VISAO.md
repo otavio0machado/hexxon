@@ -1,4 +1,4 @@
-# JARVIS 3.0 — De Chatbot a Copiloto Omnisciente
+# HEXXONAI 3.0 — De Chatbot a Copiloto Omnisciente
 
 > *"Não é sobre ter mais funcionalidades. É sobre ter uma inteligência que te conhece melhor do que você mesmo."*
 
@@ -8,11 +8,11 @@
 
 Após explorar cada página do app ao vivo na Vercel, cada tabela do Supabase (17 tabelas, 26 nós no knowledge graph, 7 flashcards, 8 exercícios, 3 erros classificados, 10 sessões de estudo, $0.41 gastos com IA) e cada linha do código-fonte (586 linhas no orchestrator, 9 serviços de IA, multi-model Claude+Gemini), identifiquei o padrão central:
 
-**O Jarvis 2.0 é reativo.** Ele espera você perguntar, responde, e para. As 8 páginas funcionam como ilhas — cada uma tem seus dados, mas eles não conversam entre si de forma inteligente. É como ter o JARVIS do Homem de Ferro... mas que só responde quando perguntado e esquece o que fez ontem.
+**O HexxonAI 2.0 é reativo.** Ele espera você perguntar, responde, e para. As 8 páginas funcionam como ilhas — cada uma tem seus dados, mas eles não conversam entre si de forma inteligente. É como ter o HEXXONAI do Homem de Ferro... mas que só responde quando perguntado e esquece o que fez ontem.
 
-**O Jarvis do Tony Stark é fundamentalmente diferente:** ele antecipa, conecta, age autonomamente e evolui. A versão 3.0 precisa fechar essa lacuna.
+**O HexxonAI do Tony Stark é fundamentalmente diferente:** ele antecipa, conecta, age autonomamente e evolui. A versão 3.0 precisa fechar essa lacuna.
 
-| | Jarvis 2.0 | Jarvis 3.0 |
+| | HexxonAI 2.0 | HexxonAI 3.0 |
 |---|---|---|
 | **Presença** | Página separada | Em toda página |
 | **Modo** | Reativo (pergunta → resposta) | Proativo (observa → age) |
@@ -21,42 +21,42 @@ Após explorar cada página do app ao vivo na Vercel, cada tabela do Supabase (1
 | **Temporalidade** | Momento presente | Planeja dias/semanas, monitora progresso |
 | **Personalização** | Adapta texto ao mastery | Adapta todo o plano de estudo ao perfil |
 
-**A essência:** Jarvis 2.0 é um assistente. Jarvis 3.0 é um copiloto que voa junto com você.
+**A essência:** HexxonAI 2.0 é um assistente. HexxonAI 3.0 é um copiloto que voa junto com você.
 
 ---
 
 ## As 6 Ideias — Profundas e Integradas
 
-### 1. 👁️ Omnipresença — Jarvis em Toda Página
+### 1. 👁️ Omnipresença — HexxonAI em Toda Página
 
-**O problema:** Hoje, Jarvis vive numa página separada (`/jarvis`). Tony Stark não precisa ir até um cômodo específico para falar com o JARVIS — ele está em todo lugar.
+**O problema:** Hoje, HexxonAI vive numa página separada (`/hexxon-ai`). Tony Stark não precisa ir até um cômodo específico para falar com o HEXXONAI — ele está em todo lugar.
 
-**O que muda:** Jarvis vira um painel lateral deslizante acessível de qualquer página via `⌘J`. Mas o diferencial não é só estar presente — é que ele sabe exatamente o que você está olhando.
+**O que muda:** HexxonAI vira um painel lateral deslizante acessível de qualquer página via `⌘J`. Mas o diferencial não é só estar presente — é que ele sabe exatamente o que você está olhando.
 
-O contexto de página, nota aberta, exercício atual, tópico selecionado — tudo isso já existe no data model. A tabela `jarvis_conversations` tem `current_page`, `discipline_id` e `topic_id` — os campos existem, mas o Jarvis não os usa de verdade. Se você está na página de exercícios olhando um erro em composição de funções e abre o Jarvis, ele não sabe disso. Você precisa explicar tudo do zero. Isso acaba.
+O contexto de página, nota aberta, exercício atual, tópico selecionado — tudo isso já existe no data model. A tabela `hexxon-ai_conversations` tem `current_page`, `discipline_id` e `topic_id` — os campos existem, mas o HexxonAI não os usa de verdade. Se você está na página de exercícios olhando um erro em composição de funções e abre o HexxonAI, ele não sabe disso. Você precisa explicar tudo do zero. Isso acaba.
 
 **Cenários concretos:**
 
-**Na página de exercícios** — Você erra um exercício. Sem você pedir, Jarvis aparece com uma dica socrática baseada no erro específico.
+**Na página de exercícios** — Você erra um exercício. Sem você pedir, HexxonAI aparece com uma dica socrática baseada no erro específico.
 
 **Na página de diagnóstico** — Você está olhando o erro "Encontre Dom(f∘g) onde f(x)=√x e g(x)=x-3" (conceitual, severidade alta). Clica `⌘J`:
 
-> *Jarvis: "Vejo que você está analisando seu erro em composição de funções. O problema foi conceitual — você aplicou f antes de g, invertendo a ordem. Isso é comum: 68% dos alunos cometem esse erro. Quer que eu:*
+> *HexxonAI: "Vejo que você está analisando seu erro em composição de funções. O problema foi conceitual — você aplicou f antes de g, invertendo a ordem. Isso é comum: 68% dos alunos cometem esse erro. Quer que eu:*
 > 1. *Explique composição passo a passo com analogias?*
 > 2. *Gere 3 exercícios progressivos focados nesse erro específico?*
 > 3. *Crie um mapa conceitual mostrando como composição se conecta com domínio e imagem?"*
 
 **Na página de notas** — Você está editando a nota sobre Funções Trigonométricas:
 
-> *Jarvis: "Essa nota sobre Limites não menciona a definição epsilon-delta. Quer que eu complete? Também posso gerar flashcards dos conceitos-chave que você escreveu."*
+> *HexxonAI: "Essa nota sobre Limites não menciona a definição epsilon-delta. Quer que eu complete? Também posso gerar flashcards dos conceitos-chave que você escreveu."*
 
 **No mapa de conhecimento** — Você clica num nó:
 
-> *Jarvis: "Séries depende de Sequências, que você ainda não domina. Quer começar por Sequências?"*
+> *HexxonAI: "Séries depende de Sequências, que você ainda não domina. Quer começar por Sequências?"*
 
 **Na página de provas** — Você clica na P1 de Funções (13/04):
 
-> *Jarvis: "P1 de Funções — faltam 18 dias. Aqui está seu status:*
+> *HexxonAI: "P1 de Funções — faltam 18 dias. Aqui está seu status:*
 > - *Conceito de função: Proficiente ✅*
 > - *Domínio e imagem: Proficiente ✅*
 > - *Afim e quadrática: Developing ⚠️*
@@ -68,7 +68,7 @@ O contexto de página, nota aberta, exercício atual, tópico selecionado — tu
 
 **Implementação técnica:**
 
-No `jarvis/context.ts`, já existe a função que monta o system prompt. A mudança é enriquecer esse contexto com dados reais da página atual:
+No `hexxon-ai/context.ts`, já existe a função que monta o system prompt. A mudança é enriquecer esse contexto com dados reais da página atual:
 
 ```typescript
 async function buildPageContext(currentPage: string, params: Record<string, string>) {
@@ -101,29 +101,29 @@ async function buildPageContext(currentPage: string, params: Record<string, stri
 }
 ```
 
-O floating button (`floating-button.tsx`) passa `window.location.pathname` + parâmetros relevantes para o Jarvis. O orchestrator usa isso para montar um system prompt hiper-contextual. Isso transforma cada página do app num ambiente assistido.
+O floating button (`floating-button.tsx`) passa `window.location.pathname` + parâmetros relevantes para o HexxonAI. O orchestrator usa isso para montar um system prompt hiper-contextual. Isso transforma cada página do app num ambiente assistido.
 
-**Por que é transformador:** Elimina a fricção de "explicar para o Jarvis o que estou fazendo". O JARVIS do Tony sabe que ele está soldando uma peça — não precisa ser informado. Essa consciência contextual é o que faz a interação parecer mágica.
+**Por que é transformador:** Elimina a fricção de "explicar para o HexxonAI o que estou fazendo". O HEXXONAI do Tony sabe que ele está soldando uma peça — não precisa ser informado. Essa consciência contextual é o que faz a interação parecer mágica.
 
 ---
 
 ### 2. 🎯 Mission Mode — Modo Objetivo, Não Modo Pergunta
 
-**O problema:** O JARVIS do Iron Man entende intenção, não só comandos. Tony diz "prepare-se para a luta" e o JARVIS prepara tudo — armadura, armas, análise do inimigo. O Jarvis 2.0 tem tool execution no orchestrator, mas é limitado. Ele pode gerar texto, mas não pode criar um flashcard, registrar uma sessão de estudo, ou atualizar o mastery de um tópico diretamente pela conversa.
+**O problema:** O HEXXONAI do Iron Man entende intenção, não só comandos. Tony diz "prepare-se para a luta" e o HEXXONAI prepara tudo — armadura, armas, análise do inimigo. O HexxonAI 2.0 tem tool execution no orchestrator, mas é limitado. Ele pode gerar texto, mas não pode criar um flashcard, registrar uma sessão de estudo, ou atualizar o mastery de um tópico diretamente pela conversa.
 
-**O que muda:** Você diz ao Jarvis um objetivo — e ele orquestra uma operação completa, não uma resposta.
+**O que muda:** Você diz ao HexxonAI um objetivo — e ele orquestra uma operação completa, não uma resposta.
 
 ```
 Você: "Preciso tirar 8 na P1 de Cálculo."
 
-Jarvis não responde com texto. Ele orquestra:
+HexxonAI não responde com texto. Ele orquestra:
 1. Analisa o assessment: data, tópicos cobertos, peso
 2. Cruza com seu mastery por tópico e seus padrões de erro
 3. Identifica os gaps via knowledge graph (pré-requisitos não dominados bloqueando tópicos da prova)
 4. Gera um plano de N dias com sessões de estudo, exercícios direcionados, flashcards, e simulados
 5. Cria tudo no sistema: sessões no calendário, exercícios no banco, flashcards para revisão, nota-resumo dos tópicos fracos
 
-Jarvis: "Missão criada: P1 Cálculo → nota 8.0
+HexxonAI: "Missão criada: P1 Cálculo → nota 8.0
 ✓ Plano de 18 dias salvo no calendário
 ✓ 12 exercícios gerados (focados em limites e composição — seus gaps)
 ✓ 15 flashcards criados dos conceitos críticos
@@ -137,23 +137,23 @@ A cada dia, quando você abre o app:
 
 > *"Dia 3/7 do plano para P1 Cálculo. Ontem você acertou 70% dos exercícios de Limites — melhorou 15%. Hoje: 30min de Continuidade (teoria) + 20min de exercícios. Vamos?"*
 
-Jarvis monitora seu progresso e reajusta o plano se você está acima ou abaixo do esperado. Um único objetivo gera ações em 6+ tabelas do Supabase.
+HexxonAI monitora seu progresso e reajusta o plano se você está acima ou abaixo do esperado. Um único objetivo gera ações em 6+ tabelas do Supabase.
 
 **Outros exemplos de execução direta:**
 
 ```
-Você: "Jarvis, acabei de estudar limites por 45 minutos, fiz 6 exercícios e acertei 4"
+Você: "HexxonAI, acabei de estudar limites por 45 minutos, fiz 6 exercícios e acertei 4"
 
-Jarvis: "Registrado. Sessão de estudo salva (45 min, exercícios, Cálculo I - Cálculo de limites).
+HexxonAI: "Registrado. Sessão de estudo salva (45 min, exercícios, Cálculo I - Cálculo de limites).
 Taxa de acerto: 67%. Seu mastery nesse tópico subiu de 'exposed' para 'developing'.
 Os 2 exercícios errados tinham padrão algébrico — vou gerar 3 exercícios focados
 nesse tipo de erro para sua próxima sessão. Quer que eu crie agora?"
 ```
 
 ```
-Você: "Jarvis, prepara meu kit de estudo para a P1 de Lógica"
+Você: "HexxonAI, prepara meu kit de estudo para a P1 de Lógica"
 
-Jarvis: "Montando seu kit para P1 — Lógica e Conjuntos (15/04/2026):
+HexxonAI: "Montando seu kit para P1 — Lógica e Conjuntos (15/04/2026):
 ✓ 8 flashcards gerados (focados em quantificadores — seu ponto fraco)
 ✓ 5 exercícios criados (3 sobre negação de quantificadores, 2 sobre conjuntos)
 ✓ Plano de estudo de 20 dias salvo no calendário
@@ -167,7 +167,7 @@ Tudo salvo e pronto. Boa prova, Otávio."
 Expandir o sistema de tools no `orchestrator.ts`. Hoje existem definições de tools, mas a execução real é limitada. A mudança é adicionar tools que chamam diretamente os services existentes:
 
 ```typescript
-const JARVIS_TOOLS = [
+const HEXXONAI_TOOLS = [
   // CRUD direto — conectam aos services em src/lib/services/
   { name: 'create_study_session', service: 'study-sessions', method: 'create' },
   { name: 'create_flashcards_batch', service: 'flashcards', method: 'createBatch' },
@@ -187,13 +187,13 @@ const JARVIS_TOOLS = [
 
 A chave é que o Claude já sabe usar tool_use — basta registrar os tools corretamente no system prompt e conectar a execução aos services que já existem em `src/lib/services/`. Não precisa reescrever nada, apenas conectar.
 
-**Por que é transformador:** Transforma 8 cliques em 8 páginas diferentes em uma frase natural. Isso não é um chatbot — é um sistema de missão que usa todas as entidades do banco de forma orquestrada. O JARVIS do Tony não mostra um menu — ele executa.
+**Por que é transformador:** Transforma 8 cliques em 8 páginas diferentes em uma frase natural. Isso não é um chatbot — é um sistema de missão que usa todas as entidades do banco de forma orquestrada. O HEXXONAI do Tony não mostra um menu — ele executa.
 
 ---
 
-### 3. ⚡ Consciência Situacional — Jarvis que Interrompe Quando Importa
+### 3. ⚡ Consciência Situacional — HexxonAI que Interrompe Quando Importa
 
-**O problema:** O JARVIS do Iron Man não espera Tony perguntar "como estão os sistemas?" — ele avisa quando algo precisa de atenção. O Jarvis 2.0 só fala quando falado.
+**O problema:** O HEXXONAI do Iron Man não espera Tony perguntar "como estão os sistemas?" — ele avisa quando algo precisa de atenção. O HexxonAI 2.0 só fala quando falado.
 
 **O que muda:** Um sistema de alertas inteligentes que roda em background e aparece como notificações contextuais. Mas a diferença entre isso e notificações genéricas é crucial: cada alerta é gerado pela **interseção de múltiplos sinais** — não é "você tem flashcards pendentes" (qualquer app faz isso), é a síntese de vários dados cruzados.
 
@@ -216,10 +216,10 @@ A chave é que o Claude já sabe usar tool_use — basta registrar os tools corr
 
 **Implementação técnica:**
 
-Nova tabela `jarvis_insights` para os alertas gerados:
+Nova tabela `hexxon-ai_insights` para os alertas gerados:
 
 ```sql
-CREATE TABLE jarvis_insights (
+CREATE TABLE hexxon-ai_insights (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   type text NOT NULL,
   -- 'readiness_alert', 'weakness_pattern', 'diminishing_returns',
@@ -245,9 +245,9 @@ A engine:
 1. Puxa todos os dados cruzados do estudante
 2. Envia para o Claude com um system prompt analítico (não conversacional)
 3. Gera insights estruturados em JSON
-4. Salva na tabela `jarvis_insights`
+4. Salva na tabela `hexxon-ai_insights`
 
-O dashboard muda: em vez de cards estáticos, mostra os insights mais recentes e urgentes como um "briefing diário" — exatamente como o JARVIS faz quando o Tony entra no lab.
+O dashboard muda: em vez de cards estáticos, mostra os insights mais recentes e urgentes como um "briefing diário" — exatamente como o HEXXONAI faz quando o Tony entra no lab.
 
 **Por que é transformador:** Muda o modelo mental de "eu vou ao app estudar" para "o app vem até mim com o que preciso saber". A diferença entre um calendário e um assistente pessoal. Cada alerta é a síntese de múltiplos sinais — não um lembrete burro.
 
@@ -261,7 +261,7 @@ O dashboard muda: em vez de cards estáticos, mostra os insights mais recentes e
 
 **Como funciona na prática:**
 
-Quando você abre o app, o Jarvis sabe exatamente o que precisa ser revisado hoje — não só flashcards, mas tudo:
+Quando você abre o app, o HexxonAI sabe exatamente o que precisa ser revisado hoje — não só flashcards, mas tudo:
 
 > *"Revisão de hoje (prioridade calculada):*
 > 1. *🃏 3 flashcards de Conjuntos (vencidos há 2 dias — risco de esquecimento: 73%)*
@@ -305,7 +305,7 @@ O algoritmo FSRS (Free Spaced Repetition Scheduler — usado pelo Anki moderno) 
 
 Isso alimenta a Consciência Situacional (ideia 3) e o Mission Mode (ideia 2). Tudo conectado.
 
-**Por que é transformador:** Substitui o "eu acho que preciso estudar X" por um cálculo preciso de "a ciência diz que você vai esquecer X amanhã se não revisar hoje". É literalmente o JARVIS analisando dados e otimizando performance.
+**Por que é transformador:** Substitui o "eu acho que preciso estudar X" por um cálculo preciso de "a ciência diz que você vai esquecer X amanhã se não revisar hoje". É literalmente o HEXXONAI analisando dados e otimizando performance.
 
 ---
 
@@ -313,12 +313,12 @@ Isso alimenta a Consciência Situacional (ideia 3) e o Mission Mode (ideia 2). T
 
 **O problema:** A página de exercícios existe, mas é um ambiente relaxado. Não existe diferença entre "praticar" e "simular uma prova". Uma prova real não é exercícios avulsos — é uma experiência cronometrada, sob pressão, com distribuição específica de tópicos. Quando a P1 chega, é a primeira vez que o aluno enfrenta pressão de tempo + múltiplos tópicos + sem consulta. O resultado: desempenho inferior ao potencial.
 
-**O que muda:** Jarvis cria e conduz um simulado completo end-to-end:
+**O que muda:** HexxonAI cria e conduz um simulado completo end-to-end:
 
 ```
-Você: "Jarvis, simula a P1 de Funções"
+Você: "HexxonAI, simula a P1 de Funções"
 
-Jarvis: "Entrando em Battle Mode 🎯
+HexxonAI: "Entrando em Battle Mode 🎯
 
 P1 — Funções (simulação)
 ⏱️ Tempo: 1h30min (mesmo da prova real)
@@ -332,8 +332,8 @@ P1 — Funções (simulação)
 **As 6 fases do simulado:**
 
 1. **Composição:** Analisa os `assessment_topics`, peso de cada tópico, distribuição de tipos (prova vs. trabalho), e monta uma prova com N questões que reflete o formato real
-2. **Execução:** Interface de prova dedicada com timer, navegação entre questões, rascunho por questão. Layout fullscreen — sidebar minimizada, sem botão do Jarvis
-3. **Correção:** Após submissão, Jarvis corrige cada resposta com `time_spent_sec` por questão, classifica erros
+2. **Execução:** Interface de prova dedicada com timer, navegação entre questões, rascunho por questão. Layout fullscreen — sidebar minimizada, sem botão do HexxonAI
+3. **Correção:** Após submissão, HexxonAI corrige cada resposta com `time_spent_sec` por questão, classifica erros
 4. **Diagnóstico pós-prova:**
 
 > *"Nota estimada: 6.8/10. Você perdeu 1.5 pontos em erros algébricos e 1.0 em interpretação. Se corrigir erros algébricos, sobe para 8.3."*
@@ -370,7 +370,7 @@ Nova rota `/simulacao/[assessmentId]` com:
 
 Isso une `exercises` + `attempts` + `error_occurrences` + `assessments` + `topics` num único fluxo coeso. O simulado não é só uma feature — é a prova de fogo que valida se o plano de estudo está funcionando.
 
-**Por que é transformador:** Resolve o problema #1 de quem estuda sozinho: nunca testar sob pressão real. O JARVIS do Tony não só treina em ambiente seguro — ele simula cenários de combate reais. O Battle Mode faz o mesmo para provas.
+**Por que é transformador:** Resolve o problema #1 de quem estuda sozinho: nunca testar sob pressão real. O HEXXONAI do Tony não só treina em ambiente seguro — ele simula cenários de combate reais. O Battle Mode faz o mesmo para provas.
 
 ---
 
@@ -378,19 +378,19 @@ Isso une `exercises` + `attempts` + `error_occurrences` + `assessments` + `topic
 
 **O problema:** O knowledge graph hoje é uma visualização. Bonito (26 nós, 22 conceitos, 2 fórmulas, 2 teoremas), mas passivo. Você olha, e ele não faz nada com a informação que contém.
 
-**O que muda:** O grafo se torna a infraestrutura de decisão que fundamenta TODAS as outras ideias. Toda decisão do Jarvis passa pelo grafo.
+**O que muda:** O grafo se torna a infraestrutura de decisão que fundamenta TODAS as outras ideias. Toda decisão do HexxonAI passa pelo grafo.
 
 **Learning paths otimizados:**
 
-> *Jarvis: "Para dominar Integrais por Partes, o caminho mais curto no grafo é: Limites (2h) → Derivadas Básicas (3h) → Regra da Cadeia (1.5h) → Integração (2h) → Partes (1h). Total estimado: 9.5h."*
+> *HexxonAI: "Para dominar Integrais por Partes, o caminho mais curto no grafo é: Limites (2h) → Derivadas Básicas (3h) → Regra da Cadeia (1.5h) → Integração (2h) → Partes (1h). Total estimado: 9.5h."*
 
-**Blocker detection:** Se um nó com muitos dependentes está fraco, Jarvis prioriza automaticamente — porque desbloqueia mais progresso. Isso é calculável: um nó com 5 arestas de saída vale mais que um com 1.
+**Blocker detection:** Se um nó com muitos dependentes está fraco, HexxonAI prioriza automaticamente — porque desbloqueia mais progresso. Isso é calculável: um nó com 5 arestas de saída vale mais que um com 1.
 
-**Mastery propagation:** Quando você domina um tópico, Jarvis verifica se os dependentes agora estão desbloqueados e sugere avançar. "Você dominou Derivadas Básicas. Isso desbloqueia Regra da Cadeia e Derivadas Implícitas. Quer começar por qual?"
+**Mastery propagation:** Quando você domina um tópico, HexxonAI verifica se os dependentes agora estão desbloqueados e sugere avançar. "Você dominou Derivadas Básicas. Isso desbloqueia Regra da Cadeia e Derivadas Implícitas. Quer começar por qual?"
 
 **Gap analysis para provas:** Cruza os tópicos da prova com o grafo e identifica não só tópicos fracos, mas pré-requisitos dos tópicos fracos que também precisam de atenção. "Para a P1, Continuidade está fraco. Mas Continuidade depende de Cálculo de Limites, que está em 'exposed'. O bloqueio real está um nível abaixo."
 
-**Overlay visual — GPS de estudo:** No mapa, Jarvis desenha o learning path como uma rota destacada — os nós que você precisa percorrer iluminam em sequência, estilo GPS. Em vez de um mapa estático de conceitos, você vê SEU caminho personalizado brilhando.
+**Overlay visual — GPS de estudo:** No mapa, HexxonAI desenha o learning path como uma rota destacada — os nós que você precisa percorrer iluminam em sequência, estilo GPS. Em vez de um mapa estático de conceitos, você vê SEU caminho personalizado brilhando.
 
 **Implementação técnica:**
 
@@ -426,9 +426,9 @@ function generatePathOverlay(path: LearningPath): PathOverlayData {
 }
 ```
 
-O grafo deixa de ser uma tela bonita e vira a infraestrutura de decisão do Jarvis inteiro — alimentando o Mission Mode (paths ótimos), a Consciência Situacional (blocker detection), e os Simulados (gap analysis).
+O grafo deixa de ser uma tela bonita e vira a infraestrutura de decisão do HexxonAI inteiro — alimentando o Mission Mode (paths ótimos), a Consciência Situacional (blocker detection), e os Simulados (gap analysis).
 
-**Por que é transformador:** É o equivalente do JARVIS analisando o campo de batalha e mostrando ao Tony a melhor rota de ataque. O grafo é o "mapa de guerra" que conecta tudo.
+**Por que é transformador:** É o equivalente do HEXXONAI analisando o campo de batalha e mostrando ao Tony a melhor rota de ataque. O grafo é o "mapa de guerra" que conecta tudo.
 
 ---
 
@@ -458,17 +458,17 @@ As 6 ideias não são features separadas — elas formam um loop que se retroali
 └──────────────────────────────────────────────────────────────┘
 ```
 
-**Exemplo do loop completo — uma semana na vida do Jarvis 3.0:**
+**Exemplo do loop completo — uma semana na vida do HexxonAI 3.0:**
 
-**Segunda:** Cognitive Engine detecta "P1 de Lógica em 20 dias, mastery médio 'developing', 2 erros não resolvidos". Grafo identifica que Quantificadores bloqueia 3 outros tópicos da prova. Jarvis gera briefing diário.
+**Segunda:** Cognitive Engine detecta "P1 de Lógica em 20 dias, mastery médio 'developing', 2 erros não resolvidos". Grafo identifica que Quantificadores bloqueia 3 outros tópicos da prova. HexxonAI gera briefing diário.
 
-**Terça:** Você abre a página de Notas sobre Quantificadores. Omnipresença percebe e Jarvis oferece: "Gero 5 flashcards dos seus erros + 3 exercícios focados?". Mission Mode executa tudo com um "sim".
+**Terça:** Você abre a página de Notas sobre Quantificadores. Omnipresença percebe e HexxonAI oferece: "Gero 5 flashcards dos seus erros + 3 exercícios focados?". Mission Mode executa tudo com um "sim".
 
 **Quarta:** Forgetting Curve calcula que retenção em Conjuntos caiu para 50%. Consciência Situacional cruza: Conjuntos cai na prova + retenção baixa + flashcards vencidos. Alerta aparece no dashboard.
 
 **Quinta:** Você estuda 45min de exercícios. Consciência Situacional detecta diminishing returns (acertos caíram de 80% para 40%). Sugere pausa. Mastery é atualizado, Grafo recalcula desbloqueios.
 
-**Sexta:** Jarvis reajusta o plano: "Você avançou mais rápido que o esperado em Quantificadores. Remanejei a sessão de sábado para Lógica Proposicional."
+**Sexta:** HexxonAI reajusta o plano: "Você avançou mais rápido que o esperado em Quantificadores. Remanejei a sessão de sábado para Lógica Proposicional."
 
 **Sábado:** Simulado completo da P1. Score: 7.2/10. Resultados alimentam todas as engines — mastery, forgetting curve, error patterns, readiness score. Grafo atualiza.
 
@@ -495,4 +495,4 @@ Fases 1 e 2 podem ser feitas em paralelo e já transformam a experiência. Fase 
 
 *"Não é sobre construir mais páginas. É sobre construir uma inteligência que conecta todas elas."*
 
-— Visão Jarvis 3.0, 27 de março de 2026
+— Visão HexxonAI 3.0, 27 de março de 2026

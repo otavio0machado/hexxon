@@ -2,14 +2,14 @@
 
 import {
   BookOpen,
-  Brain,
   FilePlus2,
   Settings2,
-  Sparkles,
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmModal } from "@/components/ui/modal";
+import { AIMenuDropdown } from "@/components/notes/ai-menu-dropdown";
+import { MindmapGeneratorModal } from "@/components/notes/mindmap-generator-modal";
 import {
   createInsertedBlockText,
   parseRenderableNoteContent,
@@ -179,6 +179,8 @@ export function NotesWorkspace({
   const [graphModalOpen, setGraphModalOpen] = useState(false);
   const [graphGenerating, setGraphGenerating] = useState(false);
   const [graphError, setGraphError] = useState<string | null>(null);
+  const [mindmapModalOpen, setMindmapModalOpen] = useState(false);
+  const [mindmapGenerating, setMindmapGenerating] = useState(false);
   const [interactiveModalOpen, setInteractiveModalOpen] = useState(false);
   const [interactiveGenerating, setInteractiveGenerating] = useState(false);
   const [interactiveError, setInteractiveError] = useState<string | null>(null);
@@ -668,6 +670,63 @@ export function NotesWorkspace({
     }
   }
 
+  async function handleGenerateMindmap({
+    request,
+    customContent,
+  }: {
+    request: string;
+    customContent?: string;
+  }) {
+    setMindmapGenerating(true);
+
+    try {
+      const response = await fetch("/api/ai/note-mindmap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          request,
+          noteContent: draft.content,
+          customContent,
+          courseName: activeDiscipline?.name,
+          topicName: activeTopic?.name,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error?.message ?? "Falha ao gerar mapa mental.");
+      }
+
+      const result = data.data as {
+        title: string;
+        html: string;
+        explanation: string;
+        frame: "phone" | "canvas";
+        height: number;
+      };
+
+      insertRenderableBlockAtCursor({
+        type: "interactive",
+        code: result.html.trim(),
+        meta: {
+          mode: "render",
+          width: 100,
+          frame: "canvas",
+          height: result.height,
+          title: result.title.trim() || "Mapa mental",
+        },
+      });
+      setMindmapModalOpen(false);
+      onToast("Mapa mental interativo inserido na nota.");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Erro ao gerar mapa mental.";
+      onToast(message, "error");
+    } finally {
+      setMindmapGenerating(false);
+    }
+  }
+
   async function handleGenerateInteractive({
     request,
     frameHint,
@@ -901,7 +960,7 @@ export function NotesWorkspace({
 
   return (
     <>
-      <div className="grid h-full min-h-0 gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+      <div className="grid h-full min-h-0 gap-4 lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="flex min-h-0 flex-col rounded-[28px] border border-border-default/80 bg-bg-surface/80">
           <div className="border-b border-border-default/70 p-4">
             <div className="mb-4 flex items-start justify-between gap-3">
@@ -988,52 +1047,19 @@ export function NotesWorkspace({
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setContentModalOpen(true)}
-                  className="rounded-2xl bg-accent-primary px-4 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90"
-                >
-                  <span className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Gerar conteúdo
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFlashcardsModalOpen(true)}
-                  className="rounded-2xl border border-border-default bg-bg-primary px-4 py-2.5 text-sm text-fg-primary transition-colors hover:bg-bg-secondary"
-                >
-                  <span className="flex items-center gap-2">
-                    <Brain className="h-4 w-4" />
-                    Gerar flashcards
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
+                <AIMenuDropdown
+                  onGenerateContent={() => setContentModalOpen(true)}
+                  onGenerateFlashcards={() => setFlashcardsModalOpen(true)}
+                  onGenerateInteractive={() => {
                     setInteractiveError(null);
                     setInteractiveModalOpen(true);
                   }}
-                  className="rounded-2xl border border-border-default bg-bg-primary px-4 py-2.5 text-sm text-fg-primary transition-colors hover:bg-bg-secondary"
-                >
-                  <span className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Gerar interativo
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
+                  onGenerateGraph={() => {
                     setGraphError(null);
                     setGraphModalOpen(true);
                   }}
-                  className="rounded-2xl border border-border-default bg-bg-primary px-4 py-2.5 text-sm text-fg-primary transition-colors hover:bg-bg-secondary"
-                >
-                  <span className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Gerar gráfico
-                  </span>
-                </button>
+                  onGenerateMindmap={() => setMindmapModalOpen(true)}
+                />
                 <button
                   type="button"
                   onClick={() => setMetaOpen((current) => !current)}
@@ -1141,7 +1167,7 @@ export function NotesWorkspace({
           </div>
 
           <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-6 py-10 md:px-10 md:py-14 xl:px-16">
+            <div className="mx-auto flex w-full max-w-none flex-col gap-8 px-6 py-8 md:px-10 md:py-10 lg:px-12">
               <input
                 ref={titleRef}
                 value={draft.title}
@@ -1355,6 +1381,18 @@ export function NotesWorkspace({
             setGraphModalOpen(false);
           }}
           onGenerate={handleGenerateGraph}
+        />
+      )}
+
+      {mindmapModalOpen && (
+        <MindmapGeneratorModal
+          loading={mindmapGenerating}
+          hasNoteContent={draft.content.trim().length > 0}
+          onClose={() => {
+            if (mindmapGenerating) return;
+            setMindmapModalOpen(false);
+          }}
+          onGenerate={handleGenerateMindmap}
         />
       )}
 

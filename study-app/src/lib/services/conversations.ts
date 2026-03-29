@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import type { JarvisMessage, ModelId } from '@/lib/jarvis/types'
+import type { HexxonAiMessage, ModelId } from '@/lib/hexxon-ai/types'
 
 // ─── Row Types ──────────────────────────────────────────────
 
@@ -33,7 +33,7 @@ export interface MessageRow {
 
 export async function getConversations(limit = 50): Promise<ConversationRow[]> {
   const { data, error } = await supabase
-    .from('jarvis_conversations')
+    .from('hexxonai_conversations')
     .select('*')
     .order('updated_at', { ascending: false })
     .limit(limit)
@@ -44,7 +44,7 @@ export async function getConversations(limit = 50): Promise<ConversationRow[]> {
 
 export async function getConversation(id: string): Promise<ConversationRow | null> {
   const { data, error } = await supabase
-    .from('jarvis_conversations')
+    .from('hexxonai_conversations')
     .select('*')
     .eq('id', id)
     .single()
@@ -64,7 +64,7 @@ export async function createConversation(params: {
   topicId?: string
 }): Promise<ConversationRow> {
   const { data, error } = await supabase
-    .from('jarvis_conversations')
+    .from('hexxonai_conversations')
     .insert({
       title: params.title ?? 'Nova conversa',
       model: params.model ?? 'claude-sonnet-4-6',
@@ -84,7 +84,7 @@ export async function updateConversation(
   updates: { title?: string; model?: string; total_cost_usd?: number }
 ): Promise<void> {
   const { error } = await supabase
-    .from('jarvis_conversations')
+    .from('hexxonai_conversations')
     .update({ ...updates, updated_at: new Date().toISOString() })
     .eq('id', id)
 
@@ -93,7 +93,7 @@ export async function updateConversation(
 
 export async function deleteConversation(id: string): Promise<void> {
   const { error } = await supabase
-    .from('jarvis_conversations')
+    .from('hexxonai_conversations')
     .delete()
     .eq('id', id)
 
@@ -102,26 +102,26 @@ export async function deleteConversation(id: string): Promise<void> {
 
 // ─── Message CRUD ───────────────────────────────────────────
 
-export async function getMessages(conversationId: string): Promise<JarvisMessage[]> {
+export async function getMessages(conversationId: string): Promise<HexxonAiMessage[]> {
   const { data, error } = await supabase
-    .from('jarvis_messages')
+    .from('hexxonai_messages')
     .select('*')
     .eq('conversation_id', conversationId)
     .order('created_at', { ascending: true })
 
   if (error) throw error
 
-  return (data ?? []).map(rowToJarvisMessage)
+  return (data ?? []).map(rowToHexxonAiMessage)
 }
 
 export async function saveMessage(
   conversationId: string,
-  msg: JarvisMessage
+  msg: HexxonAiMessage
 ): Promise<void> {
   const messageId = isUuid(msg.id) ? msg.id : undefined
 
   const { error } = await supabase
-    .from('jarvis_messages')
+    .from('hexxonai_messages')
     .insert({
       id: messageId,
       conversation_id: conversationId,
@@ -139,7 +139,7 @@ export async function saveMessage(
 
 export async function saveMessages(
   conversationId: string,
-  msgs: JarvisMessage[]
+  msgs: HexxonAiMessage[]
 ): Promise<void> {
   for (const msg of msgs) {
     await saveMessage(conversationId, msg)
@@ -156,18 +156,18 @@ export function generateTitle(firstMessage: string): string {
 
 // ─── Helpers ────────────────────────────────────────────────
 
-function rowToJarvisMessage(row: MessageRow): JarvisMessage {
+function rowToHexxonAiMessage(row: MessageRow): HexxonAiMessage {
   return {
     id: row.id,
     role: row.role,
     content: row.content,
     model: (row.model as ModelId) ?? undefined,
     meta: row.meta
-      ? (row.meta as unknown as JarvisMessage['meta'])
+      ? (row.meta as unknown as HexxonAiMessage['meta'])
       : undefined,
-    toolResults: row.tool_results as unknown as JarvisMessage['toolResults'],
-    postActions: row.post_actions as unknown as JarvisMessage['postActions'],
-    mixSources: row.mix_sources as unknown as JarvisMessage['mixSources'],
+    toolResults: row.tool_results as unknown as HexxonAiMessage['toolResults'],
+    postActions: row.post_actions as unknown as HexxonAiMessage['postActions'],
+    mixSources: row.mix_sources as unknown as HexxonAiMessage['mixSources'],
     timestamp: new Date(row.created_at).getTime(),
   }
 }

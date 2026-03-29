@@ -26,6 +26,7 @@ REGRAS:
 - Nunca adicione explicação, observação ou texto narrativo dentro do campo "mermaid".
 - Se o pedido descrever interface, mockup, dashboard, tela de celular, app ou layout visual, converta isso para uma estrutura conceitual simples em vez de tentar simular UI detalhada.
 - Prefira poucos nós e legibilidade alta. Evite diagramas gigantescos que fiquem ilegíveis ao serem inseridos na nota.
+- Para mindmap: NUNCA use parênteses (), colchetes [] ou chaves {} no texto dos nós, pois são delimitadores de forma do Mermaid e causam erro de parse. Use travessões ou vírgulas. Exemplo: "DNMTs - DNA Metiltransferases" em vez de "DNMTs (DNA Metiltransferases)".
 - Em quadrantChart, use a sintaxe oficial sem aspas nos pontos: \`Ponto A: [0.75, 0.80]\`.
 - Em quadrantChart, os valores x e y devem ficar entre 0 e 1.
 - Para xychart: OBRIGATÓRIO incluir pelo menos uma linha "line [v1, v2, ...]" ou "bar [v1, v2, ...]" com os valores numéricos.

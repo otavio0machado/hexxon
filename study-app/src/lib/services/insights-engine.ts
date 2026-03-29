@@ -1,5 +1,5 @@
 // ============================================================
-// Insights Engine — Situational Awareness for Jarvis 3.0
+// Insights Engine — Situational Awareness for HexxonAI 3.0
 // Generates smart alerts by cross-referencing multiple data sources
 // ============================================================
 
@@ -27,7 +27,7 @@ export type InsightType =
 
 export type InsightPriority = 'critical' | 'high' | 'medium' | 'low'
 
-export interface JarvisInsight {
+export interface HexxonAiInsight {
   id?: string
   type: InsightType
   priority: InsightPriority
@@ -44,35 +44,35 @@ export interface JarvisInsight {
 
 // ── Database ────────────────────────────────────────────────
 
-export async function getActiveInsights(limit = 20): Promise<JarvisInsight[]> {
+export async function getActiveInsights(limit = 20): Promise<HexxonAiInsight[]> {
   const { data } = await supabase
-    .from('jarvis_insights')
+    .from('hexxonai_insights')
     .select('*')
     .eq('is_read', false)
     .order('created_at', { ascending: false })
     .limit(limit)
-  return (data ?? []) as JarvisInsight[]
+  return (data ?? []) as HexxonAiInsight[]
 }
 
-export async function getAllInsights(limit = 50): Promise<JarvisInsight[]> {
+export async function getAllInsights(limit = 50): Promise<HexxonAiInsight[]> {
   const { data } = await supabase
-    .from('jarvis_insights')
+    .from('hexxonai_insights')
     .select('*')
     .order('created_at', { ascending: false })
     .limit(limit)
-  return (data ?? []) as JarvisInsight[]
+  return (data ?? []) as HexxonAiInsight[]
 }
 
-export async function saveInsight(insight: Omit<JarvisInsight, 'id' | 'created_at'>): Promise<void> {
-  await supabase.from('jarvis_insights').insert(insight)
+export async function saveInsight(insight: Omit<HexxonAiInsight, 'id' | 'created_at'>): Promise<void> {
+  await supabase.from('hexxonai_insights').insert(insight)
 }
 
 export async function markInsightRead(id: string): Promise<void> {
-  await supabase.from('jarvis_insights').update({ is_read: true }).eq('id', id)
+  await supabase.from('hexxonai_insights').update({ is_read: true }).eq('id', id)
 }
 
 export async function markInsightActedOn(id: string): Promise<void> {
-  await supabase.from('jarvis_insights').update({ is_acted_on: true }).eq('id', id)
+  await supabase.from('hexxonai_insights').update({ is_acted_on: true }).eq('id', id)
 }
 
 // ── Insight Generation Engine ───────────────────────────────
@@ -81,8 +81,8 @@ export async function markInsightActedOn(id: string): Promise<void> {
  * Run the full cognitive engine and generate all insights.
  * Called daily via cron or on-demand.
  */
-export async function generateInsights(triggerEvent: string = 'manual'): Promise<JarvisInsight[]> {
-  const insights: JarvisInsight[] = []
+export async function generateInsights(triggerEvent: string = 'manual'): Promise<HexxonAiInsight[]> {
+  const insights: HexxonAiInsight[] = []
 
   try {
     const [topics, exams, errors, sessions, dueCount, memoryStates] = await Promise.all([

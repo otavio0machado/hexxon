@@ -51,8 +51,8 @@ async function resetPublicSchema(client, summary) {
   await runStep("public.study_sessions", () => deleteById("study_sessions"), summary);
   await runStep("public.attempts", () => deleteById("attempts"), summary);
   await runStep("public.error_occurrences", () => deleteById("error_occurrences"), summary);
-  await runStep("public.jarvis_messages", () => deleteById("jarvis_messages"), summary);
-  await runStep("public.jarvis_conversations", () => deleteById("jarvis_conversations"), summary);
+  await runStep("public.hexxonai_messages", () => deleteById("hexxonai_messages"), summary);
+  await runStep("public.hexxonai_conversations", () => deleteById("hexxonai_conversations"), summary);
   await runStep("public.ai_usage_logs", () => deleteById("ai_usage_logs"), summary);
   await runStep(
     "public.exercises(ai_generated)",

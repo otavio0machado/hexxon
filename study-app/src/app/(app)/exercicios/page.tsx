@@ -30,7 +30,7 @@ import { Select } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { Spinner } from '@/components/ui/spinner'
 import { EmptyState } from '@/components/ui/empty-state'
-import { JarvisTip } from '@/components/jarvis/jarvis-tip'
+import { HexxonAiTip } from '@/components/hexxon-ai/hexxon-ai-tip'
 
 type FilterDifficulty = "all" | "1" | "2" | "3" | "4" | "5";
 type FilterType = "all" | "multiple_choice" | "open_ended" | "proof" | "computation";
@@ -507,12 +507,12 @@ export default function ExerciciosPage() {
         </div>
       </div>
 
-      {/* Jarvis low-mastery tip */}
+      {/* HexxonAI low-mastery tip */}
       {showLowMasteryTip && selectedTopic && (
-        <JarvisTip
-          message={`Jarvis sugere: revisar o tópico "${selectedTopic.name}" antes de praticar exercícios. Mastery atual: ${masteryLabels[selectedTopic.mastery] ?? selectedTopic.mastery}.`}
+        <HexxonAiTip
+          message={`HexxonAI sugere: revisar o tópico "${selectedTopic.name}" antes de praticar exercícios. Mastery atual: ${masteryLabels[selectedTopic.mastery] ?? selectedTopic.mastery}.`}
           actionLabel="Revisar agora"
-          onAction={() => router.push("/jarvis")}
+          onAction={() => router.push("/hexxon-ai")}
           variant="warning"
         />
       )}

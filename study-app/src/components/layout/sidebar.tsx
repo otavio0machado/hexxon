@@ -27,6 +27,16 @@ import { getCurriculumDisciplines } from "@/lib/materials/catalog";
 import { cn } from "@/lib/utils";
 import { useTheme } from "@/components/theme-provider";
 
+// ── Sidebar collapsed context ───────────────────────────────
+const SidebarCollapsedContext = createContext<{
+  collapsed: boolean;
+  setCollapsed: (v: boolean) => void;
+}>({ collapsed: false, setCollapsed: () => {} });
+
+export function useSidebarCollapsed() {
+  return useContext(SidebarCollapsedContext);
+}
+
 // ── Mobile sidebar context ──────────────────────────────────
 const MobileSidebarContext = createContext<{
   open: boolean;
@@ -39,10 +49,13 @@ export function useMobileSidebar() {
 
 export function MobileSidebarProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   return (
-    <MobileSidebarContext.Provider value={{ open, setOpen }}>
-      {children}
-    </MobileSidebarContext.Provider>
+    <SidebarCollapsedContext.Provider value={{ collapsed, setCollapsed }}>
+      <MobileSidebarContext.Provider value={{ open, setOpen }}>
+        {children}
+      </MobileSidebarContext.Provider>
+    </SidebarCollapsedContext.Provider>
   );
 }
 
@@ -64,7 +77,7 @@ const navItems = [
   { href: "/exercicios", label: "Exercícios", icon: Dumbbell, shortcut: "⌘7" },
   { href: "/calendario", label: "Calendário", icon: Calendar, shortcut: "⌘8" },
   { href: "/notas", label: "Notas", icon: StickyNote, shortcut: "⌘9" },
-  { href: "/jarvis", label: "Hexxon AI", icon: Bot, shortcut: "⌘J" },
+  { href: "/hexxon-ai", label: "Hexxon AI", icon: Bot, shortcut: "⌘J" },
 ];
 
 // ── Mobile header bar ───────────────────────────────────────
@@ -90,7 +103,7 @@ export function MobileHeader() {
 // ── Sidebar ─────────────────────────────────────────────────
 
 export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed, setCollapsed } = useSidebarCollapsed();
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
   const { open: mobileOpen, setOpen: setMobileOpen } = useMobileSidebar();
@@ -206,7 +219,7 @@ export function Sidebar() {
       {/* Desktop sidebar */}
       <aside
         className={cn(
-          "hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col border-r border-border-default bg-bg-primary transition-all",
+          "hidden md:flex fixed left-0 top-0 z-40 h-screen flex-col border-r border-border-default bg-bg-primary transition-[width] duration-300 ease-in-out",
           collapsed ? "w-16" : "w-60"
         )}
       >

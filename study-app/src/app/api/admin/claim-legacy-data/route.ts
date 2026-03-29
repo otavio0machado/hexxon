@@ -21,7 +21,7 @@ export async function POST() {
       'disciplines', 'modules', 'topics', 'assessments', 'assessment_topics',
       'exercises', 'attempts', 'error_occurrences', 'notes', 'flashcards',
       'oral_questions', 'study_sessions', 'kg_nodes', 'kg_edges',
-      'jarvis_conversations', 'jarvis_messages', 'jarvis_insights',
+      'hexxonai_conversations', 'hexxonai_messages', 'hexxonai_insights',
       'learning_events', 'topic_memory_state', 'exam_simulations', 'ai_usage_log',
     ]
 

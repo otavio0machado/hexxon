@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react'
 import { ChevronDown, ChevronUp, Bot, AlertTriangle, AlertCircle, Info, Sparkles, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { JarvisInsight } from '@/lib/services/insights-engine'
-import { useJarvisAlerts } from '@/hooks/use-jarvis-alerts'
+import type { HexxonAiInsight } from '@/lib/services/insights-engine'
+import { useHexxonAiAlerts } from '@/hooks/use-hexxon-ai-alerts'
 import { Spinner } from '@/components/ui/spinner'
 
 const BRIEFING_CACHE_KEY = 'hexxon-daily-briefing'
@@ -40,7 +40,7 @@ const priorityConfig = {
   },
 }
 
-function InsightCard({ insight, onAction }: { insight: JarvisInsight; onAction?: (insight: JarvisInsight) => void }) {
+function InsightCard({ insight, onAction }: { insight: HexxonAiInsight; onAction?: (insight: HexxonAiInsight) => void }) {
   const config = priorityConfig[insight.priority]
   const Icon = config.icon
 
@@ -63,8 +63,8 @@ function InsightCard({ insight, onAction }: { insight: JarvisInsight; onAction?:
   )
 }
 
-export function DailyBriefing({ onOpenJarvis }: { onOpenJarvis?: (message: string) => void }) {
-  const { alerts, isLoading, refresh } = useJarvisAlerts()
+export function DailyBriefing({ onOpenHexxonAI }: { onOpenHexxonAI?: (message: string) => void }) {
+  const { alerts, isLoading, refresh } = useHexxonAiAlerts()
   const [expanded, setExpanded] = useState(true)
   const [hidden, setHidden] = useState(false)
 
@@ -83,7 +83,7 @@ export function DailyBriefing({ onOpenJarvis }: { onOpenJarvis?: (message: strin
   const medium = alerts.filter(a => a.priority === 'medium')
   const low = alerts.filter(a => a.priority === 'low')
 
-  const handleAction = (insight: JarvisInsight) => {
+  const handleAction = (insight: HexxonAiInsight) => {
     const messages: Record<string, string> = {
       readiness_alert: `Prepara um plano de estudo para "${insight.title.split('—')[0].trim()}"`,
       weakness_pattern: `Gera exercícios focados em erros do tipo ${insight.data?.category ?? 'conceitual'}`,
@@ -93,7 +93,7 @@ export function DailyBriefing({ onOpenJarvis }: { onOpenJarvis?: (message: strin
       mastery_milestone: 'Qual o próximo passo no meu aprendizado?',
     }
     const msg = messages[insight.type] ?? 'Me ajuda com isso'
-    onOpenJarvis?.(msg)
+    onOpenHexxonAI?.(msg)
   }
 
   const handleDismissToday = () => {

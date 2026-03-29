@@ -41,11 +41,13 @@ const SERVICE_ROUTES: Record<string, ServiceRoute> = {
   // ── Tier 2: Sonnet (médio) ──
   'generateExamPlan':         { provider: 'anthropic', model: 'claude-sonnet-4-6', tier: 2 },
   'tutor':                    { provider: 'anthropic', model: 'claude-sonnet-4-6', tier: 2 },
-  'generateNoteInteractive':  { provider: 'anthropic', model: 'claude-sonnet-4-6', tier: 2 },
+  'generateNoteInteractive':  { provider: 'gemini', model: 'gemini-2.5-flash', tier: 1, fallbackProvider: 'anthropic', fallbackModel: 'claude-sonnet-4-6' },
   'bootstrap-curriculum':     { provider: 'anthropic', model: 'claude-sonnet-4-6', tier: 2 },
 
+  'generateMindmap':          { provider: 'anthropic', model: 'claude-sonnet-4-6', tier: 2 },
+
   // ── Tier 3: Opus (complexo) — esses NÃO passam pelo router, usam direto ──
-  // jarvis-conversation, createMission, prepareExamKit
+  // hexxon-ai-conversation, createMission, prepareExamKit
 }
 
 // ── Default route para serviços não mapeados ──

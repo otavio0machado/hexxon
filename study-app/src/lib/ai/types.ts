@@ -20,6 +20,8 @@ export interface AIServiceConfig {
   temperature?: number;
   /** Abort signal para cancelamento */
   signal?: AbortSignal;
+  /** Forçar provider específico (ignora roteamento) */
+  forceProvider?: "gemini" | "anthropic";
 }
 
 export interface AIResponse<T> {

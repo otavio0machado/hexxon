@@ -262,12 +262,12 @@ body {
    ═══════════════════════════════════════════════════════════════ */
 
 /* KaTeX dark theme */
-.jarvis-prose .katex {
+.hexxon-ai-prose .katex {
   color: var(--fg-primary);
   font-size: 1em;
 }
 
-.jarvis-prose .katex-display {
+.hexxon-ai-prose .katex-display {
   margin: 1rem 0;
   padding: 0.75rem 1rem;
   background: var(--bg-secondary);
@@ -276,22 +276,22 @@ body {
   overflow-x: auto;
 }
 
-.jarvis-prose .katex-display > .katex {
+.hexxon-ai-prose .katex-display > .katex {
   color: var(--accent-primary);
 }
 
 /* Inline KaTeX */
-.jarvis-prose .katex:not(.katex-display .katex) {
+.hexxon-ai-prose .katex:not(.katex-display .katex) {
   padding: 0 2px;
 }
 
 /* Ensure SVG within rendered content respects dark theme */
-.jarvis-prose svg text {
+.hexxon-ai-prose svg text {
   fill: var(--fg-primary);
 }
 
-.jarvis-prose svg line,
-.jarvis-prose svg path {
+.hexxon-ai-prose svg line,
+.hexxon-ai-prose svg path {
   stroke: var(--fg-secondary);
 }
 
@@ -313,7 +313,7 @@ html.light ::selection {
   background: rgba(8, 145, 178, 0.2);
 }
 
-html.light .jarvis-prose .katex-display {
+html.light .hexxon-ai-prose .katex-display {
   background: var(--bg-secondary);
   border-color: var(--border-default);
 }

@@ -1,9 +1,9 @@
 // ============================================================
-// JARVIS — Context Engine
+// HEXXONAI — Context Engine
 // Builds rich context about the user's current state
 // ============================================================
 
-import type { JarvisContext, TopicMastery, ErrorBreakdown } from './types'
+import type { HexxonAiContext, TopicMastery, ErrorBreakdown } from './types'
 import { getDisciplines, getAllTopics, getTopic } from '@/lib/services/disciplines'
 import { getUpcomingAssessments } from '@/lib/services/assessments'
 import { getRecentSessions, getStudyStreak, getTotalStudyMinutes } from '@/lib/services/study-sessions'
@@ -18,7 +18,7 @@ export async function buildContext(
   topicId?: string,
   noteContent?: string,
   noteTitle?: string,
-): Promise<JarvisContext> {
+): Promise<HexxonAiContext> {
   try {
     const [disciplines, topics, exams, sessions, dueFlashcards, errors] = await Promise.all([
       getDisciplines(),
@@ -124,7 +124,7 @@ export async function buildContext(
   }
 }
 
-export async function buildSystemPrompt(ctx: JarvisContext): Promise<string> {
+export async function buildSystemPrompt(ctx: HexxonAiContext): Promise<string> {
   const examWarnings = ctx.upcomingExams
     .filter(e => e.daysUntil <= 14)
     .map(e => `  - ${e.name} em ${e.daysUntil} dia(s) (${e.date})`)

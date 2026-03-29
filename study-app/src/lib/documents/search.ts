@@ -1,6 +1,6 @@
 // ============================================================
 // Document Search — Keyword-based search in document chunks
-// Provides relevant document context for Jarvis conversations
+// Provides relevant document context for HexxonAI conversations
 // ============================================================
 
 import { supabase } from '@/lib/supabase'

@@ -6,8 +6,8 @@ delete from public.oral_questions;
 delete from public.study_sessions;
 delete from public.attempts;
 delete from public.error_occurrences;
-delete from public.jarvis_messages;
-delete from public.jarvis_conversations;
+delete from public.hexxonai_messages;
+delete from public.hexxonai_conversations;
 delete from public.ai_usage_logs;
 delete from public.exercises where ai_generated = true;
 

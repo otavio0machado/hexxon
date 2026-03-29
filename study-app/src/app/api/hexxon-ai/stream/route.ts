@@ -1,11 +1,11 @@
 // ============================================================
-// JARVIS — Streaming API Route
-// POST /api/jarvis/stream — SSE endpoint for streaming responses
+// HEXXONAI — Streaming API Route
+// POST /api/hexxon-ai/stream — SSE endpoint for streaming responses
 // ============================================================
 
-import { buildContext } from '@/lib/jarvis/context'
-import { orchestrateStream } from '@/lib/jarvis/orchestrator'
-import type { ModelId, JarvisMessage } from '@/lib/jarvis/types'
+import { buildContext } from '@/lib/hexxon-ai/context'
+import { orchestrateStream } from '@/lib/hexxon-ai/orchestrator'
+import type { ModelId, HexxonAiMessage } from '@/lib/hexxon-ai/types'
 
 export const runtime = 'nodejs'
 
@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       noteContent,
       noteTitle,
     } = body as {
-      messages: JarvisMessage[]
+      messages: HexxonAiMessage[]
       model: ModelId
       currentPage?: string
       disciplineId?: string

@@ -1,6 +1,6 @@
 # Plano: Sistema de Usuário + Onboarding Inteligente
 
-> O objetivo é transformar o cogni. de um app single-user sem auth em uma plataforma multi-user onde o Jarvis se adapta completamente ao perfil acadêmico de cada estudante.
+> O objetivo é transformar o cogni. de um app single-user sem auth em uma plataforma multi-user onde o HexxonAI se adapta completamente ao perfil acadêmico de cada estudante.
 
 ---
 
@@ -11,8 +11,8 @@
 | Autenticação | Nenhuma. Anon key direto. | Supabase Auth (email + Google OAuth) |
 | Isolamento de dados | Zero. Todas as queries são globais. | `user_id` em toda tabela + RLS |
 | Onboarding | Inexistente. `/` vai direto pro dashboard. | Landing → Login → Intro → Setup acadêmico → Upload docs → Bootstrap |
-| Documentos do usuário | Upload básico em `/materiais` (sem processamento inteligente) | Pipeline completo: upload → extração → indexação → alimenta Jarvis |
-| Personalização | Currículo hardcoded (Cálculo I + Mat. Discreta) | Jarvis gera currículo baseado nos documentos reais do aluno |
+| Documentos do usuário | Upload básico em `/materiais` (sem processamento inteligente) | Pipeline completo: upload → extração → indexação → alimenta HexxonAI |
+| Personalização | Currículo hardcoded (Cálculo I + Mat. Discreta) | HexxonAI gera currículo baseado nos documentos reais do aluno |
 | Multi-tenancy | Impossível (sem user_id) | Cada aluno tem seu universo isolado |
 
 **Infraestrutura que já existe e pode ser aproveitada:**
@@ -36,9 +36,9 @@
 │     └─→ Se primeiro acesso → vai para onboarding                   │
 │     └─→ Se já tem conta → vai para dashboard                      │
 │                                                                     │
-│  3. INTRO DO JARVIS (só no primeiro acesso)                        │
-│     └─→ Tela imersiva explicando as capacidades do Jarvis          │
-│     └─→ "Eu sou o Jarvis. Vou ser seu copiloto de estudo."        │
+│  3. INTRO DO HEXXONAI (só no primeiro acesso)                        │
+│     └─→ Tela imersiva explicando as capacidades do HexxonAI          │
+│     └─→ "Eu sou o HexxonAI. Vou ser seu copiloto de estudo."        │
 │                                                                     │
 │  4. SETUP ACADÊMICO                                                 │
 │     └─→ Qual faculdade?                                            │
@@ -60,8 +60,8 @@
 │     └─→ Drag & drop com categorização automática                   │
 │     └─→ Barra de progresso do processamento                        │
 │                                                                     │
-│  6. JARVIS BOOTSTRAP                                                │
-│     └─→ Jarvis processa todos os documentos                        │
+│  6. HEXXONAI BOOTSTRAP                                                │
+│     └─→ HexxonAI processa todos os documentos                        │
 │     └─→ Extrai: tópicos, cronograma, fórmulas, pré-requisitos     │
 │     └─→ Gera automaticamente:                                      │
 │         • Disciplinas com módulos e tópicos                        │
@@ -106,9 +106,9 @@ src/
 │   │   ├── login/page.tsx
 │   │   └── registro/page.tsx
 │   ├── (app)/              ← grupo de rotas protegidas (com sidebar, requer auth)
-│   │   ├── layout.tsx      ← layout com sidebar + JarvisProvider + auth check
+│   │   ├── layout.tsx      ← layout com sidebar + HexxonAiProvider + auth check
 │   │   ├── page.tsx        ← DASHBOARD (antigo /)
-│   │   ├── jarvis/
+│   │   ├── hexxon-ai/
 │   │   ├── exercicios/
 │   │   └── ... (todas as rotas atuais)
 │   ├── onboarding/         ← fluxo de primeiro acesso
@@ -275,7 +275,7 @@ Página pública que apresenta o cogni. Estilo hero section + features:
 
 **Estrutura:**
 - Hero: "Seu copiloto de estudo com inteligência artificial" + CTA "Começar grátis"
-- Seção de features visuais (Jarvis, Mapa de Conhecimento, Simulados, etc.)
+- Seção de features visuais (HexxonAI, Mapa de Conhecimento, Simulados, etc.)
 - Footer com link para login
 
 **Detalhes de design:** Manter o dark theme atual. Animações sutis. Mobile-first. Sem sidebar.
@@ -297,13 +297,13 @@ Página pública que apresenta o cogni. Estilo hero section + features:
 
 ## Fase 3 — Fluxo de Onboarding
 
-### 3.1 Tela de Introdução do Jarvis (`/onboarding/intro`)
+### 3.1 Tela de Introdução do HexxonAI (`/onboarding/intro`)
 
 Tela imersiva, fullscreen, estilo "cinematic intro":
 
-O Jarvis se apresenta ao usuário. Pode ser uma animação simples com texto aparecendo progressivamente:
+O HexxonAI se apresenta ao usuário. Pode ser uma animação simples com texto aparecendo progressivamente:
 
-> *"Olá, [nome]. Eu sou o Jarvis.*
+> *"Olá, [nome]. Eu sou o HexxonAI.*
 >
 > *Vou ser seu copiloto de estudo durante toda a faculdade. Eu analiso seus materiais, identifico suas fraquezas, planejo suas revisões e simulo suas provas.*
 >
@@ -313,7 +313,7 @@ O Jarvis se apresenta ao usuário. Pode ser uma animação simples com texto apa
 
 Botão: **"Vamos lá"** → avança para setup acadêmico.
 
-**UI:** Fundo escuro, texto branco aparecendo com animação de typing, ícone do Jarvis sutil. Sem sidebar, sem distrações.
+**UI:** Fundo escuro, texto branco aparecendo com animação de typing, ícone do HexxonAI sutil. Sem sidebar, sem distrações.
 
 ### 3.2 Setup Acadêmico (`/onboarding/academico`)
 
@@ -351,7 +351,7 @@ Botão "+ Adicionar disciplina" para quantas forem necessárias.
 
 **Layout da página:**
 
-Header com mensagem do Jarvis:
+Header com mensagem do HexxonAI:
 > *"Agora preciso dos seus materiais. Quanto mais você me enviar, melhor eu consigo montar seu plano de estudo. Não se preocupe em organizar — eu faço isso."*
 
 **Área de upload por disciplina:**
@@ -387,16 +387,16 @@ Para cada disciplina cadastrada na etapa anterior, uma seção com:
 └─────────────────────────────────────────────────────┘
 ```
 
-**Checklist visual:** Os tipos de documento listados servem como "guia" para o aluno lembrar o que tem. Conforme ele envia, os checkboxes marcam automaticamente (via classificação do Jarvis).
+**Checklist visual:** Os tipos de documento listados servem como "guia" para o aluno lembrar o que tem. Conforme ele envia, os checkboxes marcam automaticamente (via classificação do HexxonAI).
 
-**Classificação automática:** Ao fazer upload, o Jarvis classifica o tipo do documento (ementa, lista, slides, prova antiga, etc.) via Claude. O usuário pode corrigir a classificação se errada.
+**Classificação automática:** Ao fazer upload, o HexxonAI classifica o tipo do documento (ementa, lista, slides, prova antiga, etc.) via Claude. O usuário pode corrigir a classificação se errada.
 
 **Mensagem de incentivo:** Se o aluno envia poucos documentos:
 > *"Você enviou 2 documentos para Cálculo I. Quanto mais materiais eu tiver, melhor posso mapear os tópicos e gerar exercícios relevantes. Tem mais alguma coisa?"*
 
 Botão: **"Pronto, processe tudo"** → avança para bootstrap.
 
-### 3.4 Bootstrap do Jarvis (`/onboarding/bootstrap`)
+### 3.4 Bootstrap do HexxonAI (`/onboarding/bootstrap`)
 
 **Esta é a etapa onde a mágica acontece.**
 
@@ -405,7 +405,7 @@ Tela de loading com progresso detalhado:
 ```
 ┌─────────────────────────────────────────────────────┐
 │                                                     │
-│  🧠 Jarvis está analisando seus materiais...        │
+│  🧠 HexxonAI está analisando seus materiais...        │
 │                                                     │
 │  ████████████░░░░░░░░ 60%                           │
 │                                                     │
@@ -421,7 +421,7 @@ Tela de loading com progresso detalhado:
 └─────────────────────────────────────────────────────┘
 ```
 
-**O que o Jarvis faz por trás (pipeline):**
+**O que o HexxonAI faz por trás (pipeline):**
 
 ```
 Documentos enviados
@@ -470,12 +470,12 @@ Documentos enviados
 
 ### 3.5 Tela de Revisão (`/onboarding/bootstrap` — segunda fase)
 
-Após o processamento, o Jarvis mostra ao usuário o que gerou:
+Após o processamento, o HexxonAI mostra ao usuário o que gerou:
 
 ```
 ┌─────────────────────────────────────────────────────┐
 │                                                     │
-│  ✅ Jarvis configurou seu sistema!                  │
+│  ✅ HexxonAI configurou seu sistema!                  │
 │                                                     │
 │  Aqui está o que eu montei baseado nos seus         │
 │  materiais. Revise e ajuste o que precisar.         │
@@ -511,7 +511,7 @@ Após o processamento, o Jarvis mostra ao usuário o que gerou:
 └─────────────────────────────────────────────────────┘
 ```
 
-**Cada item é editável:** O usuário pode renomear tópicos, mudar datas de provas, adicionar módulos que o Jarvis não detectou, remover flashcards que não fazem sentido. Isso é crítico — o Jarvis propõe, o humano confirma.
+**Cada item é editável:** O usuário pode renomear tópicos, mudar datas de provas, adicionar módulos que o HexxonAI não detectou, remover flashcards que não fazem sentido. Isso é crítico — o HexxonAI propõe, o humano confirma.
 
 ---
 
@@ -532,7 +532,7 @@ CREATE TABLE user_documents (
   file_size integer NOT NULL,           -- bytes
   mime_type text NOT NULL,
 
-  -- Classificação (gerada pelo Jarvis, editável pelo usuário)
+  -- Classificação (gerada pelo HexxonAI, editável pelo usuário)
   doc_type text NOT NULL,
   -- 'syllabus', 'exercise_list', 'slides', 'textbook', 'past_exam',
   -- 'lecture_notes', 'solution_key', 'other'
@@ -550,7 +550,7 @@ CREATE TABLE user_documents (
   -- Metadados
   uploaded_at timestamptz DEFAULT now(),
   processed_at timestamptz,
-  source text DEFAULT 'onboarding',    -- 'onboarding' | 'materiais_page' | 'jarvis'
+  source text DEFAULT 'onboarding',    -- 'onboarding' | 'materiais_page' | 'hexxon-ai'
 
   -- Versionamento (professor manda v2 de uma lista)
   replaces_document_id uuid REFERENCES user_documents(id),
@@ -673,7 +673,7 @@ A página `/materiais` ganha uma seção "Meus Documentos" permanente onde o usu
 
 **Quando um novo documento é adicionado:**
 1. Upload → processamento automático (mesma pipeline)
-2. Jarvis analisa o conteúdo
+2. HexxonAI analisa o conteúdo
 3. Se detecta novos tópicos que não estão no currículo → sugere adição
 4. Se detecta exercícios → oferece importar para a página de exercícios
 5. Se detecta datas de provas → oferece criar/atualizar assessments
@@ -681,7 +681,7 @@ A página `/materiais` ganha uma seção "Meus Documentos" permanente onde o usu
 
 ---
 
-## Fase 5 — Bootstrap Inteligente do Jarvis
+## Fase 5 — Bootstrap Inteligente do HexxonAI
 
 ### 5.1 API Route: `POST /api/onboarding/bootstrap`
 
@@ -762,13 +762,13 @@ REGRAS:
 
 ---
 
-## Fase 6 — O Jarvis Usa os Documentos Continuamente
+## Fase 6 — O HexxonAI Usa os Documentos Continuamente
 
-O sistema de documentos não é só para o onboarding — é uma fonte permanente de conhecimento para o Jarvis.
+O sistema de documentos não é só para o onboarding — é uma fonte permanente de conhecimento para o HexxonAI.
 
 ### 6.1 Contexto Documental nas Respostas
 
-Quando o Jarvis responde perguntas ou gera conteúdo, ele pode referenciar os documentos do aluno:
+Quando o HexxonAI responde perguntas ou gera conteúdo, ele pode referenciar os documentos do aluno:
 
 > *"Sobre limites no infinito, seu livro (Stewart Cap. 2.6) define como... E nos slides da Aula 05, o professor apresentou o método..."*
 
@@ -779,14 +779,14 @@ Quando o Jarvis responde perguntas ou gera conteúdo, ele pode referenciar os do
 Quando o aluno adiciona um novo documento (ex: professor mandou Lista 3):
 
 1. Pipeline processa o documento
-2. Jarvis compara com o currículo existente
+2. HexxonAI compara com o currículo existente
 3. Detecta: novos tópicos? novos exercícios? mudança de datas?
 4. Gera insight proativo: "A Lista 3 cobre Continuidade e Derivadas. Continuidade já está no seu currículo mas Derivadas não. Quer que eu adicione o módulo de Derivadas?"
 5. Se o aluno confirma, o sistema se atualiza
 
 ### 6.3 Exercícios Baseados nos Materiais Reais
 
-Em vez de gerar exercícios genéricos, o Jarvis pode:
+Em vez de gerar exercícios genéricos, o HexxonAI pode:
 - Usar exercícios das listas do professor como base
 - Gerar variações dos exercícios das provas anteriores
 - Referencia os slides quando explica um conceito
@@ -803,19 +803,19 @@ Em vez de gerar exercícios genéricos, o Jarvis pode:
 | **1.4** | Atualizar todos os services para usar auth client | Alto | 1.3 |
 | **2.1** | Landing page | Baixo | Nenhum (pode ser paralelo) |
 | **2.2** | Páginas de login/registro | Médio | 1.1 |
-| **3.1** | Tela intro do Jarvis | Baixo | 2.2 |
+| **3.1** | Tela intro do HexxonAI | Baixo | 2.2 |
 | **3.2** | Setup acadêmico (formulário) | Médio | 1.2 |
 | **3.3** | Upload de documentos (UI + Storage) | Alto | 1.2 |
 | **3.4** | Pipeline de processamento de documentos | Alto | 3.3 |
-| **3.5** | Bootstrap do Jarvis (geração de currículo) | Alto | 3.4 |
+| **3.5** | Bootstrap do HexxonAI (geração de currículo) | Alto | 3.4 |
 | **3.6** | Tela de revisão do bootstrap | Médio | 3.5 |
 | **4.1** | Área permanente de documentos em `/materiais` | Médio | 3.3 |
-| **4.2** | Detecção de conteúdo novo + sugestões | Médio | 3.4, Jarvis 3.0 |
-| **5.1** | Contexto documental no Jarvis | Alto | 3.4, document_chunks |
+| **4.2** | Detecção de conteúdo novo + sugestões | Médio | 3.4, HexxonAI 3.0 |
+| **5.1** | Contexto documental no HexxonAI | Alto | 3.4, document_chunks |
 
 **Caminho crítico:** 1.1 → 1.2 → 1.3 → 1.4 (auth funcionando) → 2.2 → 3.2 → 3.3 → 3.4 → 3.5 → 3.6
 
-**Paralelo:** Landing page (2.1) + Intro do Jarvis (3.1) podem ser feitas a qualquer momento.
+**Paralelo:** Landing page (2.1) + Intro do HexxonAI (3.1) podem ser feitas a qualquer momento.
 
 ---
 
@@ -849,10 +849,10 @@ Motivo: chamadas menores são mais confiáveis, mais fáceis de debugar, e permi
 
 ### Dados do onboarding vs. dados do aluno
 
-**Regra fundamental:** O Jarvis propõe, o humano confirma. Tudo que o bootstrap gerar deve ser editável pelo usuário antes e depois. O campo `source` em cada entidade rastreia se foi gerado pelo Jarvis ou criado manualmente.
+**Regra fundamental:** O HexxonAI propõe, o humano confirma. Tudo que o bootstrap gerar deve ser editável pelo usuário antes e depois. O campo `source` em cada entidade rastreia se foi gerado pelo HexxonAI ou criado manualmente.
 
 ---
 
-*"O primeiro contato define a relação. Se o onboarding for mágico, o aluno confia no Jarvis pro resto do semestre."*
+*"O primeiro contato define a relação. Se o onboarding for mágico, o aluno confia no HexxonAI pro resto do semestre."*
 
 — Plano Sistema de Usuário, 27 de março de 2026

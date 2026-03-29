@@ -1,7 +1,7 @@
 // ============================================================
-// JARVIS — Insights API
-// GET /api/jarvis/insights — Get active insights
-// POST /api/jarvis/insights — Generate new insights
+// HEXXONAI — Insights API
+// GET /api/hexxon-ai/insights — Get active insights
+// POST /api/hexxon-ai/insights — Generate new insights
 // ============================================================
 
 import { NextResponse } from 'next/server'

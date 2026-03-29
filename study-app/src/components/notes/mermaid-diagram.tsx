@@ -3,25 +3,27 @@
 import mermaid from "mermaid";
 import { AlertCircle, Minus, Plus, RotateCcw } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useTheme } from "@/components/theme-provider";
 import { normalizeMermaidChart } from "@/lib/notes/mermaid";
 import { cn } from "@/lib/utils";
 
-let initialized = false;
+let initializedTheme: string | null = null;
 
 interface SvgDimensions {
   width: number;
   height: number;
 }
 
-function ensureMermaid() {
-  if (initialized) return;
+function ensureMermaid(theme: "dark" | "light") {
+  const mermaidTheme = theme === "dark" ? "dark" : "default";
+  if (initializedTheme === mermaidTheme) return;
   mermaid.initialize({
     startOnLoad: false,
     securityLevel: "loose",
-    theme: "dark",
+    theme: mermaidTheme,
     suppressErrorRendering: true,
   });
-  initialized = true;
+  initializedTheme = mermaidTheme;
 }
 
 function parseSvgDimension(value: string | null) {
@@ -61,6 +63,7 @@ export function MermaidDiagram({ chart }: { chart: string }) {
   const id = useId().replace(/:/g, "");
   const renderId = useMemo(() => `mermaid-${id}`, [id]);
   const normalizedChart = useMemo(() => normalizeMermaidChart(chart), [chart]);
+  const { theme } = useTheme();
   const [svg, setSvg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [zoomLevel, setZoomLevel] = useState(1);
@@ -75,10 +78,15 @@ export function MermaidDiagram({ chart }: { chart: string }) {
 
     async function renderDiagram() {
       try {
-        ensureMermaid();
+        ensureMermaid(theme);
         const { svg: rendered } = await mermaid.render(renderId, normalizedChart);
         if (!cancelled) {
-          setSvg(rendered);
+          // Strip any inline background from the SVG so it inherits the page theme
+          const cleaned = rendered.replace(
+            /(<svg[^>]*style="[^"]*?)background-color:\s*[^;"]+;?\s*/gi,
+            "$1",
+          );
+          setSvg(cleaned);
           setError(null);
         }
       } catch (renderError) {
@@ -97,11 +105,11 @@ export function MermaidDiagram({ chart }: { chart: string }) {
     return () => {
       cancelled = true;
     };
-  }, [normalizedChart, renderId]);
+  }, [normalizedChart, renderId, theme]);
 
   useEffect(() => {
     function updateAvailableHeight() {
-      setAvailableHeight(Math.round(Math.min(window.innerHeight * 0.62, 760)));
+      setAvailableHeight(Math.round(Math.min(window.innerHeight * 0.7, 900)));
     }
 
     updateAvailableHeight();
@@ -126,7 +134,9 @@ export function MermaidDiagram({ chart }: { chart: string }) {
   const fitScale = useMemo(() => {
     if (!dimensions || !containerWidth) return 1;
 
-    return Math.min(Math.max((containerWidth - 32) / dimensions.width, 0.35), 3);
+    // Minimum 0.65 so diagrams (especially mindmaps) stay readable;
+    // the viewport has overflow-auto so the user can scroll if needed.
+    return Math.min(Math.max((containerWidth - 32) / dimensions.width, 0.65), 3);
   }, [containerWidth, dimensions]);
 
   const scale = useMemo(
@@ -194,7 +204,7 @@ export function MermaidDiagram({ chart }: { chart: string }) {
       >
         <div className="flex min-h-full min-w-full items-start justify-center p-2">
           <div
-            className="origin-top-left transition-transform"
+            className="origin-top transition-transform"
             style={{ transform: `scale(${scale})`, width: "max-content" }}
             dangerouslySetInnerHTML={{ __html: svg ?? "" }}
           />

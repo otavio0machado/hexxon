@@ -126,6 +126,8 @@ export async function callGeminiGeneric<T>(
           systemInstruction: system,
           temperature,
           maxOutputTokens: maxTokens,
+          // Disable thinking for fast, deterministic generation
+          thinkingConfig: { thinkingBudget: 0 },
         },
       })
 

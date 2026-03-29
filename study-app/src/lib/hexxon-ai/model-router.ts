@@ -2,7 +2,7 @@
 // Smart Model Router — Auto-selects cheapest model that fits
 // ============================================================
 
-import type { ModelId, JarvisMessage, JarvisContext } from './types'
+import type { ModelId, HexxonAiMessage, HexxonAiContext } from './types'
 
 // Keywords that signal high complexity → need stronger model
 const COMPLEX_KEYWORDS = [
@@ -41,8 +41,8 @@ interface RoutingResult {
 }
 
 export function selectModel(
-  messages: JarvisMessage[],
-  context?: JarvisContext | null,
+  messages: HexxonAiMessage[],
+  context?: HexxonAiContext | null,
 ): RoutingResult {
   const lastMessage = messages[messages.length - 1]
   if (!lastMessage || lastMessage.role !== 'user') {

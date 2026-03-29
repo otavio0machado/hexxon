@@ -16,7 +16,7 @@ Total de arquivos TS/TSX: ~117. A grande maioria já usa os tokens semânticos.
 
 - **`src/app/globals.css`** — Todos os design tokens vivem aqui em `:root`. É onde você deve criar o bloco de override para light mode.
 - **`src/app/layout.tsx`** — Root layout. Atualmente tem `className="... dark"` hardcoded no `<html>`. Precisa virar dinâmico.
-- **`src/app/(app)/layout.tsx`** — Layout do app autenticado (sidebar + JarvisProvider).
+- **`src/app/(app)/layout.tsx`** — Layout do app autenticado (sidebar + HexxonAiProvider).
 - **`src/components/layout/sidebar.tsx`** — Sidebar principal. Onde o toggle de tema deve ficar.
 
 ---
@@ -88,7 +88,7 @@ html.light ::selection {
   background: rgba(8, 145, 178, 0.2);
 }
 
-html.light .jarvis-prose .katex-display {
+html.light .hexxon-ai-prose .katex-display {
   background: var(--bg-secondary);
   border-color: var(--border-default);
 }
@@ -233,14 +233,14 @@ O `text-white` em botões com `bg-accent-primary` é **aceitável** — texto br
 - `src/components/notes/graph-generator-modal.tsx`
 - `src/components/notes/ai-action-modal.tsx`
 - `src/components/notes/interactive-generator-modal.tsx`
-- `src/components/jarvis/chat.tsx`
+- `src/components/hexxon-ai/chat.tsx`
 
 #### B) Gradientes hardcoded com baixa opacidade (2 arquivos — CRÍTICO)
 
 Estes usam classes como `from-blue-600/20 via-cyan-500/20 to-emerald-500/20` que ficam quase invisíveis em fundo branco:
 
-- `src/app/(app)/jarvis/page.tsx`
-- `src/components/jarvis/chat.tsx`
+- `src/app/(app)/hexxon-ai/page.tsx`
+- `src/components/hexxon-ai/chat.tsx`
 
 Classes afetadas nestes arquivos:
 - `text-cyan-400` → Muito claro em fundo branco. Usar `text-cyan-600` no light ou trocar por `text-accent-primary`.

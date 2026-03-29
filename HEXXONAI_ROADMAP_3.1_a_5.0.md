@@ -1,16 +1,16 @@
-# JARVIS — Roadmap de Implementação: 3.1 → 5.0
+# HEXXONAI — Roadmap de Implementação: 3.1 → 5.0
 
 > *"O 3.0 transformou o chatbot em copiloto. O caminho até o 5.0 transforma o copiloto numa plataforma de inteligência educacional."*
 
 > **Data:** 27 de março de 2026
-> **Contexto:** Documento de evolução progressiva do Jarvis, partindo das 6 ideias fundamentais do 3.0 (Omnipresença, Mission Mode, Consciência Situacional, Forgetting Curve, Simulados, Grafo Vivo) e construindo camadas cada vez mais profundas de inteligência.
+> **Contexto:** Documento de evolução progressiva do HexxonAI, partindo das 6 ideias fundamentais do 3.0 (Omnipresença, Mission Mode, Consciência Situacional, Forgetting Curve, Simulados, Grafo Vivo) e construindo camadas cada vez mais profundas de inteligência.
 
 ---
 
 ## Mapa Geral — A Jornada
 
 ```
-JARVIS 3.0        JARVIS 3.1        JARVIS 3.2        JARVIS 3.5        JARVIS 4.0        JARVIS 5.0
+HEXXONAI 3.0        HEXXONAI 3.1        HEXXONAI 3.2        HEXXONAI 3.5        HEXXONAI 4.0        HEXXONAI 5.0
 ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 Copiloto          Copiloto          Copiloto que      Plataforma        Segundo Cérebro   Learning OS
 que responde      que sente         pensa sobre       Aberta            Autônomo          Ecossistema
@@ -26,7 +26,7 @@ Fundação:         + Multimodal      + Meta-cognição   + Auth + RLS      + Ag
 
 ---
 
-## JARVIS 3.1 — O Copiloto Sensorial
+## HEXXONAI 3.1 — O Copiloto Sensorial
 
 > **Tema central:** Expandir os canais de entrada e saída. O 3.0 só entende texto digitado. O 3.1 entende foto, voz, rabisco, e captura rápida. Também começa a devolver insight sobre o próprio aluno.
 
@@ -35,13 +35,13 @@ Fundação:         + Multimodal      + Meta-cognição   + Auth + RLS      + Ag
 
 ---
 
-### 3.1.1 — Multimodalidade: Jarvis que Vê
+### 3.1.1 — Multimodalidade: HexxonAI que Vê
 
 **O problema que resolve:** Estudo real acontece no papel. Exercícios feitos à mão, anotações no caderno, fórmulas no quadro branco da aula. Nada disso entra no sistema hoje. O aluno tem que transcrever manualmente — e ninguém faz isso.
 
 **Como funciona:**
 
-O aluno tira foto de um exercício resolvido à mão. O Jarvis:
+O aluno tira foto de um exercício resolvido à mão. O HexxonAI:
 
 1. Reconhece a escrita (Claude Vision — já suporta LaTeX manuscrito)
 2. Interpreta a resolução passo a passo
@@ -53,7 +53,7 @@ O aluno tira foto de um exercício resolvido à mão. O Jarvis:
 ```
 Você: [foto de exercício de limite no caderno]
 
-Jarvis: "Li seu exercício. Você calculou lim(x→2) (x²-4)/(x-2).
+HexxonAI: "Li seu exercício. Você calculou lim(x→2) (x²-4)/(x-2).
 
 Passo 1: Fatorou x²-4 como (x-2)(x+2) ✅
 Passo 2: Simplificou (x-2) ✅
@@ -69,9 +69,9 @@ substituição cuidadosa?"
 
 **Cenários adicionais:**
 
-- Foto do quadro branco da aula → Jarvis extrai conteúdo e cria nota no vault automaticamente
-- Foto de uma página do livro/apostila → Jarvis gera flashcards dos conceitos-chave
-- Screenshot de um gráfico → Jarvis identifica a função e cria exercícios sobre ela
+- Foto do quadro branco da aula → HexxonAI extrai conteúdo e cria nota no vault automaticamente
+- Foto de uma página do livro/apostila → HexxonAI gera flashcards dos conceitos-chave
+- Screenshot de um gráfico → HexxonAI identifica a função e cria exercícios sobre ela
 
 **Implementação técnica:**
 
@@ -112,8 +112,8 @@ export async function POST(req: Request) {
 **Componente de UI:**
 
 ```typescript
-// src/components/jarvis/image-input.tsx
-// Botão de câmera no painel do Jarvis (ao lado do input de texto)
+// src/components/hexxon-ai/image-input.tsx
+// Botão de câmera no painel do HexxonAI (ao lado do input de texto)
 // - Mobile: abre câmera nativa
 // - Desktop: drag & drop ou clipboard (Cmd+V)
 // - Preview da imagem antes de enviar
@@ -143,7 +143,7 @@ CREATE TABLE vision_analyses (
 
 **Como funciona:**
 
-Um modo mínimo de entrada — texto livre, sem formulários — que o Jarvis processa assincronamente.
+Um modo mínimo de entrada — texto livre, sem formulários — que o HexxonAI processa assincronamente.
 
 ```
 Quick Capture (acessível via ⌘K ou botão flutuante):
@@ -151,7 +151,7 @@ Quick Capture (acessível via ⌘K ou botão flutuante):
 Você digita: "estudei limites 40min, errei exercício de
              indeterminação 0/0 por fatoração"
 
-Jarvis processa em background:
+HexxonAI processa em background:
 ✓ Sessão de estudo criada (40min, Cálculo I, Cálculo de Limites)
 ✓ Erro registrado (tipo: processual, tópico: Cálculo de Limites,
    subtipo: fatoração)
@@ -213,10 +213,10 @@ async function processCapture(rawText: string): Promise<CaptureResult> {
 
 **Como funciona:**
 
-O Jarvis inverte os papéis — ele faz de aluno e você faz de professor.
+O HexxonAI inverte os papéis — ele faz de aluno e você faz de professor.
 
 ```
-Jarvis: "Desafio Feynman: explique Composição de Funções
+HexxonAI: "Desafio Feynman: explique Composição de Funções
 como se eu fosse um aluno do ensino médio que sabe
 o que é função mas nunca viu composição."
 
@@ -225,7 +225,7 @@ e coloca como entrada de outra. Tipo, se f(x) = x² e
 g(x) = x+1, então f(g(x)) é pegar x+1 e elevar ao quadrado.
 Então f(g(2)) = f(3) = 9."
 
-Jarvis: "Avaliação da sua explicação:
+HexxonAI: "Avaliação da sua explicação:
 
 ✅ Analogia intuitiva ('pegar resultado e colocar como entrada')
 ✅ Exemplo concreto com valores numéricos
@@ -295,16 +295,16 @@ CREATE TABLE feynman_challenges (
 
 ---
 
-### 3.1.4 — Self-Analytics: Jarvis como Coach de Meta-Aprendizagem
+### 3.1.4 — Self-Analytics: HexxonAI como Coach de Meta-Aprendizagem
 
-**O problema que resolve:** O Jarvis 3.0 te ajuda a estudar conteúdo. Mas não te ensina *como você aprende*. Cada pessoa tem padrões — horários de pico, modalidades preferidas, durações ótimas de sessão, tipos de exercício que consolidam melhor. Os dados existem (tabelas `study_sessions`, `attempts`, `error_occurrences`) mas ninguém os analisa para extrair perfil cognitivo.
+**O problema que resolve:** O HexxonAI 3.0 te ajuda a estudar conteúdo. Mas não te ensina *como você aprende*. Cada pessoa tem padrões — horários de pico, modalidades preferidas, durações ótimas de sessão, tipos de exercício que consolidam melhor. Os dados existem (tabelas `study_sessions`, `attempts`, `error_occurrences`) mas ninguém os analisa para extrair perfil cognitivo.
 
 **Como funciona:**
 
-O Jarvis analisa seu histórico de estudo e gera um "Perfil de Aprendizagem" que evolui com o tempo.
+O HexxonAI analisa seu histórico de estudo e gera um "Perfil de Aprendizagem" que evolui com o tempo.
 
 ```
-Jarvis: "Relatório semanal de meta-aprendizagem (17-23/mar):
+HexxonAI: "Relatório semanal de meta-aprendizagem (17-23/mar):
 
 📊 Seu Perfil Cognitivo:
 
@@ -371,9 +371,9 @@ interface LearnerProfile {
 
 ---
 
-## JARVIS 3.2 — O Copiloto que Pensa Sobre o Pensar
+## HEXXONAI 3.2 — O Copiloto que Pensa Sobre o Pensar
 
-> **Tema central:** Inteligência cruzada entre disciplinas, dificuldade adaptativa em tempo real, e predição de performance. O Jarvis não só reage aos dados — ele antecipa o futuro.
+> **Tema central:** Inteligência cruzada entre disciplinas, dificuldade adaptativa em tempo real, e predição de performance. O HexxonAI não só reage aos dados — ele antecipa o futuro.
 
 **Pré-requisito:** 3.1 estável + Ideias 3 (Consciência Situacional), 4 (Forgetting Curve) e 6 (Grafo Vivo) do 3.0 implementadas.
 **Estimativa:** 4–6 semanas após 3.1.
@@ -386,10 +386,10 @@ interface LearnerProfile {
 
 **Como funciona:**
 
-O knowledge graph ganha arestas *entre* disciplinas, não só dentro delas. O Jarvis detecta e explora essas pontes.
+O knowledge graph ganha arestas *entre* disciplinas, não só dentro delas. O HexxonAI detecta e explora essas pontes.
 
 ```
-Jarvis: "Conexão detectada: você acabou de estudar
+HexxonAI: "Conexão detectada: você acabou de estudar
 Conjuntos em Discreta. O tópico 'Domínio de Funções'
 em Cálculo usa a mesma linguagem de conjuntos.
 
@@ -460,7 +460,7 @@ Q3 (dificuldade 7/10): lim(x→∞) (3x²+1)/(x²-2) = ?
 → Acertou em 90s ✅ (subiu de novo)
 
 Q4 (dificuldade 8/10): lim(x→0) (1-cos(x))/x² = ?
-→ Errou ✗ (Jarvis detecta: erro conceitual, não sabia
+→ Errou ✗ (HexxonAI detecta: erro conceitual, não sabia
   a identidade trigonométrica)
 
 Q5 (dificuldade 6/10): mesmo conceito, ângulo diferente
@@ -508,16 +508,16 @@ function calibrateNext(state: FlowState): NextQuestion {
 
 ---
 
-### 3.2.3 — Predictive Engine: Jarvis que Vê o Futuro
+### 3.2.3 — Predictive Engine: HexxonAI que Vê o Futuro
 
 **O problema que resolve:** O 3.0 mostra readiness score — uma foto do presente. Mas não projeta: "se você continuar nesse ritmo, qual será sua nota?". O aluno não sabe se está no caminho certo até a prova chegar.
 
 **Como funciona:**
 
-O Jarvis constrói um modelo preditivo baseado em: velocidade de progressão do mastery, padrão de retenção (forgetting curve), histórico de simulados, e tempo restante até a prova.
+O HexxonAI constrói um modelo preditivo baseado em: velocidade de progressão do mastery, padrão de retenção (forgetting curve), histórico de simulados, e tempo restante até a prova.
 
 ```
-Jarvis: "Projeção para P1 de Cálculo (13/04 — 17 dias):
+HexxonAI: "Projeção para P1 de Cálculo (13/04 — 17 dias):
 
 Cenário atual (mantendo ritmo atual):
   Nota estimada: 6.8 ± 0.9
@@ -527,7 +527,7 @@ Cenário intensivo (+30min/dia em limites):
   Nota estimada: 7.8 ± 0.7
   Probabilidade de passar: 78%
 
-Cenário ótimo (seguindo plano do Jarvis 100%):
+Cenário ótimo (seguindo plano do HexxonAI 100%):
   Nota estimada: 8.5 ± 0.5
   Probabilidade de passar: 95%
 
@@ -570,23 +570,23 @@ function projectScore(model: PredictionModel): Prediction {
 
 ---
 
-### 3.2.4 — Contextual Memory: Jarvis que Lembra de Tudo
+### 3.2.4 — Contextual Memory: HexxonAI que Lembra de Tudo
 
-**O problema que resolve:** Cada conversa com o Jarvis começa do zero em termos de diálogo. Ele sabe os dados (mastery, erros, etc.), mas não lembra que "ontem você disse que tava confuso com a regra da cadeia" ou "semana passada você pediu explicação sobre epsilon-delta e entendeu quando eu usei a analogia do alvo de dardos".
+**O problema que resolve:** Cada conversa com o HexxonAI começa do zero em termos de diálogo. Ele sabe os dados (mastery, erros, etc.), mas não lembra que "ontem você disse que tava confuso com a regra da cadeia" ou "semana passada você pediu explicação sobre epsilon-delta e entendeu quando eu usei a analogia do alvo de dardos".
 
 **Como funciona:**
 
-O Jarvis mantém uma memória episódica das interações significativas — não toda conversa, mas momentos de insight, confusão, preferência pedagógica, e compromissos.
+O HexxonAI mantém uma memória episódica das interações significativas — não toda conversa, mas momentos de insight, confusão, preferência pedagógica, e compromissos.
 
 ```
-Jarvis: "Na terça você me pediu pra explicar regra da cadeia
+HexxonAI: "Na terça você me pediu pra explicar regra da cadeia
 e a analogia que funcionou foi a de 'cebola — descasca camada
 por camada'. Hoje você errou um exercício de cadeia. Quer que
 eu retome a partir da analogia da cebola?"
 ```
 
 ```
-Jarvis: "Você mencionou na segunda que quarta não ia poder
+HexxonAI: "Você mencionou na segunda que quarta não ia poder
 estudar. Redistribuí a carga: hoje tem 20 min extras de
 Limites pra compensar."
 ```
@@ -594,7 +594,7 @@ Limites pra compensar."
 **Implementação técnica:**
 
 ```sql
-CREATE TABLE jarvis_episodic_memory (
+CREATE TABLE hexxon-ai_episodic_memory (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
   memory_type text NOT NULL,
   -- 'insight_moment'     (aluno entendeu algo, + a analogia que funcionou)
@@ -610,11 +610,11 @@ CREATE TABLE jarvis_episodic_memory (
 );
 ```
 
-O system prompt do Jarvis inclui as N memórias mais relevantes (por recência × relevância × tópico atual). Isso dá personalidade e continuidade — o Jarvis sente como um tutor que te conhece, não como um chatbot stateless.
+O system prompt do HexxonAI inclui as N memórias mais relevantes (por recência × relevância × tópico atual). Isso dá personalidade e continuidade — o HexxonAI sente como um tutor que te conhece, não como um chatbot stateless.
 
 ---
 
-## JARVIS 3.5 — A Plataforma Aberta
+## HEXXONAI 3.5 — A Plataforma Aberta
 
 > **Tema central:** O salto de "app pessoal do Otávio" para "plataforma que qualquer estudante pode usar". Multi-user, onboarding inteligente, extensível, mobile-first.
 
@@ -648,22 +648,22 @@ const notes = await getNotes(user.id);
 
 ---
 
-### 3.5.2 — Onboarding Inteligente: Jarvis Constrói o Universo
+### 3.5.2 — Onboarding Inteligente: HexxonAI Constrói o Universo
 
 **O problema que resolve:** Hoje o app já vem com Cálculo I e Discreta pré-carregados. Para outros alunos, isso é inútil. O onboarding precisa construir o universo acadêmico do zero a partir dos documentos reais do aluno.
 
 **O fluxo:**
 
 ```
-Novo aluno se registra → Intro do Jarvis → Setup acadêmico →
+Novo aluno se registra → Intro do HexxonAI → Setup acadêmico →
 
-Jarvis: "Me passa os materiais das suas disciplinas —
+HexxonAI: "Me passa os materiais das suas disciplinas —
 plano de ensino, cronograma de aulas, lista de provas.
 Pode ser foto, PDF, ou colar o texto."
 
 [aluno faz upload do plano de ensino]
 
-Jarvis: "Analisei o plano de ensino de Álgebra Linear.
+HexxonAI: "Analisei o plano de ensino de Álgebra Linear.
 Identifiquei:
 - 4 módulos, 12 tópicos, 28 subtópicos
 - 3 provas + 1 trabalho
@@ -673,7 +673,7 @@ Confirma se está correto? [preview da estrutura]"
 
 [aluno confirma]
 
-Jarvis cria automaticamente:
+HexxonAI cria automaticamente:
 ✓ Disciplina no banco
 ✓ Módulos e tópicos
 ✓ Assessments com datas e pesos
@@ -705,7 +705,7 @@ Upload (PDF/imagem/texto)
 **Arquitetura de plugins:**
 
 ```typescript
-interface JarvisPlugin {
+interface HexxonAiPlugin {
   id: string;
   name: string;
   description: string;
@@ -718,8 +718,8 @@ interface JarvisPlugin {
     visualization?: React.ComponentType;        // widgets extras na página
   };
 
-  // Tools que o plugin adiciona ao Jarvis
-  tools: JarvisTool[];
+  // Tools que o plugin adiciona ao HexxonAI
+  tools: HexxonAiTool[];
 
   // Hooks no ciclo de vida
   hooks: {
@@ -755,7 +755,7 @@ interface JarvisPlugin {
 **O que precisa de conexão:**
 
 - Geração de exercícios (requer Claude)
-- Chat com Jarvis
+- Chat com HexxonAI
 - Simulados
 - Sync de dados
 
@@ -796,40 +796,40 @@ Com todos os dados das versões 3.0-3.2, o dashboard vira uma Mission Control re
 
 ---
 
-## JARVIS 4.0 — O Segundo Cérebro Autônomo
+## HEXXONAI 4.0 — O Segundo Cérebro Autônomo
 
-> **Tema central:** O Jarvis deixa de ser um copiloto que precisa de input humano e se torna um agente autônomo que mantém o sistema de estudo vivo mesmo sem o aluno abrir o app. Ele aprende a aprender. Ele se auto-melhora. Ele gera conhecimento novo.
+> **Tema central:** O HexxonAI deixa de ser um copiloto que precisa de input humano e se torna um agente autônomo que mantém o sistema de estudo vivo mesmo sem o aluno abrir o app. Ele aprende a aprender. Ele se auto-melhora. Ele gera conhecimento novo.
 
 **Pré-requisito:** 3.5 completo e estável, com dados suficientes de múltiplos usuários.
 **Estimativa:** 8–12 semanas. É a versão mais ambiciosa e a mais experimental.
 
 ---
 
-### 4.0.1 — Agente Autônomo: Jarvis que Age Sozinho
+### 4.0.1 — Agente Autônomo: HexxonAI que Age Sozinho
 
-**O problema que resolve:** Mesmo com a Consciência Situacional do 3.0, o Jarvis só *alerta* — o aluno precisa agir. O 4.0 permite que o Jarvis *aja autonomamente* dentro de limites configurados pelo aluno.
+**O problema que resolve:** Mesmo com a Consciência Situacional do 3.0, o HexxonAI só *alerta* — o aluno precisa agir. O 4.0 permite que o HexxonAI *aja autonomamente* dentro de limites configurados pelo aluno.
 
 **Níveis de autonomia (configuráveis):**
 
 ```
 Nível 1 — Observador (padrão):
-  Jarvis alerta, o aluno decide e executa.
+  HexxonAI alerta, o aluno decide e executa.
   (Equivalente ao 3.0)
 
 Nível 2 — Conselheiro:
-  Jarvis sugere ações específicas. O aluno aprova com um tap.
+  HexxonAI sugere ações específicas. O aluno aprova com um tap.
   "Gerei 5 flashcards de limites. [Aprovar] [Editar] [Descartar]"
 
 Nível 3 — Copiloto:
-  Jarvis executa ações de baixo risco automaticamente e avisa.
+  HexxonAI executa ações de baixo risco automaticamente e avisa.
   Ações de alto risco pedem aprovação.
   Auto: gerar flashcards, reagendar sessões, criar notas de revisão
   Pede aprovação: alterar mastery, deletar conteúdo, mudar plano
 
 Nível 4 — Piloto Automático:
-  Jarvis mantém o sistema inteiro funcionando autonomamente.
+  HexxonAI mantém o sistema inteiro funcionando autonomamente.
   Gera conteúdo, ajusta planos, reage a padrões, evolui o KG.
-  O aluno só estuda — o Jarvis cuida de todo o resto.
+  O aluno só estuda — o HexxonAI cuida de todo o resto.
 ```
 
 **Exemplo do Nível 4 em ação (sem o aluno abrir o app):**
@@ -837,7 +837,7 @@ Nível 4 — Piloto Automático:
 ```
 [Domingo, 2h — cron noturno]
 
-Jarvis autonomamente:
+HexxonAI autonomamente:
 1. Analisa forgetting curves de todos os tópicos
 2. Detecta que 3 tópicos vão cruzar o threshold de retenção amanhã
 3. Gera flashcards de revisão para esses tópicos
@@ -849,7 +849,7 @@ Jarvis autonomamente:
 
 [Segunda, 8h — aluno abre o app]
 
-Jarvis: "Fiz algumas coisas durante o fim de semana:
+HexxonAI: "Fiz algumas coisas durante o fim de semana:
 ✓ 9 flashcards novos gerados (3 tópicos em risco de esquecimento)
 ✓ Plano da semana recalculado (P2 de Discreta antecipou 3 dias)
 ✓ 2 exercícios de reforço prontos para Regra da Cadeia
@@ -905,10 +905,10 @@ async function autonomousCycle(userId: string, config: AutonomyConfig) {
 
 **Como funciona:**
 
-Quando o novo semestre começa, o Jarvis faz um "transfer":
+Quando o novo semestre começa, o HexxonAI faz um "transfer":
 
 ```
-Jarvis: "Novo semestre! Trouxe do semestre anterior:
+HexxonAI: "Novo semestre! Trouxe do semestre anterior:
 
 📊 Seu perfil cognitivo:
   - Horário ótimo: manhã (dados de 47 sessões)
@@ -948,9 +948,9 @@ CREATE TABLE semester_transfer (
 
 ---
 
-### 4.0.3 — Geração Autônoma de Currículo: Jarvis Cria o Knowledge Graph
+### 4.0.3 — Geração Autônoma de Currículo: HexxonAI Cria o Knowledge Graph
 
-**O problema que resolve:** No 3.5, o onboarding cria o KG a partir do plano de ensino — mas é um KG básico. No 4.0, o Jarvis *enriquece continuamente* o knowledge graph baseado no que o aluno estuda, nas perguntas que faz, e nos erros que comete.
+**O problema que resolve:** No 3.5, o onboarding cria o KG a partir do plano de ensino — mas é um KG básico. No 4.0, o HexxonAI *enriquece continuamente* o knowledge graph baseado no que o aluno estuda, nas perguntas que faz, e nos erros que comete.
 
 **Como funciona:**
 
@@ -958,10 +958,10 @@ CREATE TABLE semester_transfer (
 [Aluno estuda Regra da Cadeia, erra exercício porque não
 lembrou de Derivada da Exponencial]
 
-Jarvis detecta: não existe aresta no KG entre "Regra da Cadeia"
+HexxonAI detecta: não existe aresta no KG entre "Regra da Cadeia"
 e "Derivada da Exponencial". Mas os dados mostram dependência.
 
-Jarvis autonomamente:
+HexxonAI autonomamente:
 1. Cria edge: Derivada da Exponencial → Regra da Cadeia
    (relation: 'prerequisite', source: 'inferred_from_errors')
 2. Recalcula learning paths que passam por Regra da Cadeia
@@ -995,14 +995,14 @@ interface KgEvolution {
 
 ---
 
-### 4.0.4 — Jarvis Ensina Jarvis: Meta-Otimização Pedagógica
+### 4.0.4 — HexxonAI Ensina HexxonAI: Meta-Otimização Pedagógica
 
-**O problema que resolve:** As explicações e exercícios do Jarvis são gerados pelo Claude com prompts estáticos. Mas com dados suficientes, o sistema pode aprender *quais tipos de prompt geram melhor aprendizagem*. O Jarvis otimiza a si mesmo.
+**O problema que resolve:** As explicações e exercícios do HexxonAI são gerados pelo Claude com prompts estáticos. Mas com dados suficientes, o sistema pode aprender *quais tipos de prompt geram melhor aprendizagem*. O HexxonAI otimiza a si mesmo.
 
 **Como funciona:**
 
 ```
-O Jarvis mantém um registro:
+O HexxonAI mantém um registro:
 - Explicação A (analogia visual) para Tópico X → aluno entendeu
   (mastery subiu, exercícios posteriores corretos)
 - Explicação B (formal/matemática) para Tópico X → aluno não entendeu
@@ -1015,7 +1015,7 @@ Com múltiplos alunos:
 - Explicação A funciona para 73% dos alunos com perfil "visual"
 - Explicação B funciona para 81% dos alunos com perfil "formal"
 
-→ Jarvis aprende a segmentar e personalizar automaticamente
+→ HexxonAI aprende a segmentar e personalizar automaticamente
 ```
 
 **Implementação:**
@@ -1036,13 +1036,13 @@ CREATE TABLE pedagogical_experiments (
 );
 ```
 
-A/B testing automatizado em explicações, exercícios, timings de revisão. O Jarvis literalmente roda experimentos pedagógicos e aplica os resultados. É machine learning sobre o processo de ensino.
+A/B testing automatizado em explicações, exercícios, timings de revisão. O HexxonAI literalmente roda experimentos pedagógicos e aplica os resultados. É machine learning sobre o processo de ensino.
 
 ---
 
-### 4.0.5 — Modo Professor: Jarvis para Docentes
+### 4.0.5 — Modo Professor: HexxonAI para Docentes
 
-**O problema que resolve:** O Jarvis conhece profundamente os padrões de erro dos alunos. Esses dados são valiosos para professores — se agregados e anonimizados. "72% da turma erra composição de funções por inverter a ordem" é informação que muda como o professor ensina.
+**O problema que resolve:** O HexxonAI conhece profundamente os padrões de erro dos alunos. Esses dados são valiosos para professores — se agregados e anonimizados. "72% da turma erra composição de funções por inverter a ordem" é informação que muda como o professor ensina.
 
 **Dashboard do professor:**
 
@@ -1070,9 +1070,9 @@ A/B testing automatizado em explicações, exercícios, timings de revisão. O J
 
 ---
 
-## JARVIS 5.0 — O Learning OS
+## HEXXONAI 5.0 — O Learning OS
 
-> **Tema central:** O Jarvis deixa de ser um app de estudo e se torna um **sistema operacional de aprendizagem** — uma camada de inteligência que permeia toda a vida acadêmica e profissional do aluno. Não é mais sobre passar em provas. É sobre construir competência real e conectá-la com o mundo.
+> **Tema central:** O HexxonAI deixa de ser um app de estudo e se torna um **sistema operacional de aprendizagem** — uma camada de inteligência que permeia toda a vida acadêmica e profissional do aluno. Não é mais sobre passar em provas. É sobre construir competência real e conectá-la com o mundo.
 
 **Pré-requisito:** 4.0 maduro com base de usuários ativa e dados pedagógicos robustos.
 **Estimativa:** 10–16 semanas. É a transformação de produto em plataforma.
@@ -1081,14 +1081,14 @@ A/B testing automatizado em explicações, exercícios, timings de revisão. O J
 
 ### 5.0.1 — Social Learning Network: Inteligência Coletiva
 
-**O problema que resolve:** Até o 4.0, estudar é uma atividade solitária dentro do Jarvis. Mas aprendizagem é fundamentalmente social — grupos de estudo, monitoria, dúvidas compartilhadas, explicações entre colegas. O 5.0 conecta cérebros.
+**O problema que resolve:** Até o 4.0, estudar é uma atividade solitária dentro do HexxonAI. Mas aprendizagem é fundamentalmente social — grupos de estudo, monitoria, dúvidas compartilhadas, explicações entre colegas. O 5.0 conecta cérebros.
 
 **Como funciona:**
 
-Não é uma rede social genérica. É uma rede de aprendizagem onde cada conexão é mediada pelo knowledge graph e pelos dados de mastery. O Jarvis sabe exatamente quem pode ajudar quem.
+Não é uma rede social genérica. É uma rede de aprendizagem onde cada conexão é mediada pelo knowledge graph e pelos dados de mastery. O HexxonAI sabe exatamente quem pode ajudar quem.
 
 ```
-Jarvis: "Você está travado em Epsilon-Delta há 3 dias.
+HexxonAI: "Você está travado em Epsilon-Delta há 3 dias.
 Encontrei 2 colegas que podem ajudar:
 
 👤 Ana (Turma 31) — dominou Epsilon-Delta semana passada.
@@ -1104,7 +1104,7 @@ Quer que eu abra uma sessão de estudo colaborativa?"
 
 **Matchmaking inteligente:**
 
-O Jarvis não conecta pessoas aleatoriamente. Ele calcula compatibilidade baseada em:
+O HexxonAI não conecta pessoas aleatoriamente. Ele calcula compatibilidade baseada em:
 
 ```typescript
 interface StudyMatchScore {
@@ -1130,25 +1130,25 @@ interface StudyMatchScore {
 
 **Modos de colaboração:**
 
-| Modo | Descrição | Mediação do Jarvis |
+| Modo | Descrição | Mediação do HexxonAI |
 |------|-----------|-------------------|
-| **Study Buddy** | Dois alunos estudam o mesmo tópico juntos | Jarvis gera exercícios pareados, cada um resolve e explica pro outro |
-| **Teach-to-Learn** | Aluno forte explica para aluno fraco | Jarvis avalia a explicação (Feynman mode) e dá crédito de mastery ao "professor" |
-| **Error Swap** | Alunos trocam seus erros mais comuns | Jarvis monta exercícios baseados nos erros do outro — perspectiva nova |
+| **Study Buddy** | Dois alunos estudam o mesmo tópico juntos | HexxonAI gera exercícios pareados, cada um resolve e explica pro outro |
+| **Teach-to-Learn** | Aluno forte explica para aluno fraco | HexxonAI avalia a explicação (Feynman mode) e dá crédito de mastery ao "professor" |
+| **Error Swap** | Alunos trocam seus erros mais comuns | HexxonAI monta exercícios baseados nos erros do outro — perspectiva nova |
 | **Simulation Duel** | Dois alunos fazem o mesmo simulado simultaneamente | Ranking + análise comparativa pós-simulado |
-| **Knowledge Merge** | Alunos combinam suas notas sobre um tópico | Jarvis sintetiza as duas perspectivas numa nota mais completa |
+| **Knowledge Merge** | Alunos combinam suas notas sobre um tópico | HexxonAI sintetiza as duas perspectivas numa nota mais completa |
 
 **O aluno que ensina também aprende:**
 
 ```
 [Ana explica Epsilon-Delta para Otávio via Teach-to-Learn]
 
-Jarvis para Ana: "Sua explicação cobriu 85% dos conceitos-chave.
+HexxonAI para Ana: "Sua explicação cobriu 85% dos conceitos-chave.
 Faltou mencionar que δ depende de ε (e não o contrário).
 Seu mastery em Epsilon-Delta subiu de 82% para 88% — ensinar
 consolidou seu conhecimento."
 
-Jarvis para Otávio: "Entendeu a explicação? Vou fazer
+HexxonAI para Otávio: "Entendeu a explicação? Vou fazer
 3 perguntas para verificar."
 ```
 
@@ -1170,7 +1170,7 @@ CREATE TABLE collaborative_sessions (
   session_type text NOT NULL,        -- 'teach_to_learn', 'study_buddy', 'simulation_duel', etc.
   participants uuid[] NOT NULL,
   topic_id text REFERENCES topics(id),
-  jarvis_mediation jsonb,            -- intervenções e avaliações do Jarvis
+  hexxon-ai_mediation jsonb,            -- intervenções e avaliações do HexxonAI
   outcomes jsonb,                    -- mastery deltas para cada participante
   quality_rating real,               -- rating mútuo
   created_at timestamptz DEFAULT now()
@@ -1193,16 +1193,16 @@ CREATE TABLE community_contribution (
 
 ### 5.0.2 — Real-World Bridge: Do Acadêmico ao Profissional
 
-**O problema que resolve:** O Jarvis até o 4.0 vive dentro do universo acadêmico — provas, notas, exercícios. Mas o aluno de CC está aprendendo pra construir coisas reais. Não existe ponte entre "dominar Grafos em Discreta" e "usar Grafos pra resolver um problema real de engenharia de software".
+**O problema que resolve:** O HexxonAI até o 4.0 vive dentro do universo acadêmico — provas, notas, exercícios. Mas o aluno de CC está aprendendo pra construir coisas reais. Não existe ponte entre "dominar Grafos em Discreta" e "usar Grafos pra resolver um problema real de engenharia de software".
 
 **Como funciona:**
 
-O Jarvis conecta cada tópico acadêmico com aplicações reais no campo do aluno.
+O HexxonAI conecta cada tópico acadêmico com aplicações reais no campo do aluno.
 
 ```
 [Otávio domina Grafos em Matemática Discreta]
 
-Jarvis: "Você dominou Grafos. Esse conhecimento tem
+HexxonAI: "Você dominou Grafos. Esse conhecimento tem
 aplicação direta em:
 
 💻 Shortest Path em redes — algoritmo de Dijkstra
@@ -1224,7 +1224,7 @@ Quer começar?"
 
 ```
 1. CONTEXT LINK
-   Após dominar tópico acadêmico, Jarvis mostra onde ele
+   Após dominar tópico acadêmico, HexxonAI mostra onde ele
    aparece no mundo real com exemplos do campo do aluno.
 
 2. MINI-PROJECT
@@ -1283,14 +1283,14 @@ async function generateBridges(
 
 ---
 
-### 5.0.3 — Career Intelligence: Jarvis como Conselheiro de Carreira
+### 5.0.3 — Career Intelligence: HexxonAI como Conselheiro de Carreira
 
-**O problema que resolve:** O aluno de CC faz escolhas de carreira ao longo do curso — estágio, área de especialização, projetos pessoais, tecnologias para aprender. Essas escolhas são feitas quase que às cegas. O Jarvis tem dados sobre as competências do aluno e pode cruzar com dados do mercado.
+**O problema que resolve:** O aluno de CC faz escolhas de carreira ao longo do curso — estágio, área de especialização, projetos pessoais, tecnologias para aprender. Essas escolhas são feitas quase que às cegas. O HexxonAI tem dados sobre as competências do aluno e pode cruzar com dados do mercado.
 
 **Como funciona:**
 
 ```
-Jarvis: "Análise de perfil de competências (fim do 1º semestre):
+HexxonAI: "Análise de perfil de competências (fim do 1º semestre):
 
 🧮 Competências acadêmicas fortes:
    - Lógica e raciocínio formal (mastery 89%)
@@ -1320,7 +1320,7 @@ Jarvis: "Análise de perfil de competências (fim do 1º semestre):
      (você já tem a base matemática)"
 ```
 
-**O Jarvis cruza:**
+**O HexxonAI cruza:**
 
 ```typescript
 interface CareerIntelligence {
@@ -1372,16 +1372,16 @@ CREATE TABLE career_recommendations (
 
 ### 5.0.4 — Open Knowledge Protocol: Conhecimento que Transcende o App
 
-**O problema que resolve:** Todo o conhecimento gerado dentro do Jarvis — notas, flashcards, knowledge graphs, explicações que funcionaram — está preso dentro do app. Se o aluno trocar de ferramenta, perde tudo. E o conhecimento coletivo gerado por milhares de alunos estudando os mesmos tópicos morre dentro do banco de dados.
+**O problema que resolve:** Todo o conhecimento gerado dentro do HexxonAI — notas, flashcards, knowledge graphs, explicações que funcionaram — está preso dentro do app. Se o aluno trocar de ferramenta, perde tudo. E o conhecimento coletivo gerado por milhares de alunos estudando os mesmos tópicos morre dentro do banco de dados.
 
 **Como funciona:**
 
-O Jarvis implementa um protocolo aberto de exportação/importação de conhecimento.
+O HexxonAI implementa um protocolo aberto de exportação/importação de conhecimento.
 
 **Para o aluno individual:**
 
 ```
-Jarvis: "Exportar seu conhecimento:
+HexxonAI: "Exportar seu conhecimento:
 
 📦 Export completo (Obsidian-compatible):
    - 47 notas em Markdown com frontmatter
@@ -1400,7 +1400,7 @@ Seus dados são seus. Sempre."
 **Para a comunidade (opt-in):**
 
 ```
-Jarvis: "Contribuir para o Knowledge Commons:
+HexxonAI: "Contribuir para o Knowledge Commons:
 
 Você pode compartilhar (anonimamente):
 ✓ Suas melhores notas sobre Limites (rated 4.8/5 por peers)
@@ -1417,7 +1417,7 @@ Em troca, você acessa:
 Contribuir? [Sim, anonimamente] [Escolher o que compartilhar] [Não]"
 ```
 
-**O diferencial:** O ranking de conteúdo não é por popularidade — é por **eficácia medida**. Uma explicação que fez o mastery subir em 80% dos alunos que a leram é melhor que uma com 1000 likes. O Jarvis tem os dados para medir isso.
+**O diferencial:** O ranking de conteúdo não é por popularidade — é por **eficácia medida**. Uma explicação que fez o mastery subir em 80% dos alunos que a leram é melhor que uma com 1000 likes. O HexxonAI tem os dados para medir isso.
 
 **Implementação técnica:**
 
@@ -1479,15 +1479,15 @@ CREATE TABLE knowledge_consumption_log (
 
 ---
 
-### 5.0.5 — Learning OS: Integrações que Fazem o Jarvis Onipresente
+### 5.0.5 — Learning OS: Integrações que Fazem o HexxonAI Onipresente
 
-**O problema que resolve:** O aluno vive em múltiplos ambientes — VS Code pra programar, Google Calendar pra horários, Notion/Obsidian pra notas pessoais, WhatsApp pra grupos de estudo, o portal da universidade pra notas oficiais. O Jarvis vive numa aba do browser. Para ser um verdadeiro OS de aprendizagem, ele precisa estar em todos esses contextos.
+**O problema que resolve:** O aluno vive em múltiplos ambientes — VS Code pra programar, Google Calendar pra horários, Notion/Obsidian pra notas pessoais, WhatsApp pra grupos de estudo, o portal da universidade pra notas oficiais. O HexxonAI vive numa aba do browser. Para ser um verdadeiro OS de aprendizagem, ele precisa estar em todos esses contextos.
 
 **Integrações:**
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    JARVIS LEARNING OS                            │
+│                    HEXXONAI LEARNING OS                            │
 │                                                                 │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐       │
 │  │ VS Code  │  │ Calendar │  │ Obsidian │  │ WhatsApp │       │
@@ -1497,7 +1497,7 @@ CREATE TABLE knowledge_consumption_log (
 │       └──────────────┴──────┬───────┴──────────────┘             │
 │                             │                                    │
 │                    ┌────────▼────────┐                           │
-│                    │   JARVIS CORE   │                           │
+│                    │   HEXXONAI CORE   │                           │
 │                    │   (API Layer)   │                           │
 │                    └────────┬────────┘                           │
 │                             │                                    │
@@ -1509,12 +1509,12 @@ CREATE TABLE knowledge_consumption_log (
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-**VS Code Extension — Jarvis para Programação:**
+**VS Code Extension — HexxonAI para Programação:**
 
 ```
 [Otávio está programando em Python, escrevendo um sort]
 
-Jarvis (sidebar do VS Code): "Vejo que você está implementando
+HexxonAI (sidebar do VS Code): "Vejo que você está implementando
 um bubble sort. Esse algoritmo tem complexidade O(n²).
 
 Isso conecta com o tópico 'Complexidade' que você vai ver
@@ -1523,7 +1523,7 @@ sobre Big-O enquanto o conceito está fresco?"
 
 [Otávio erra um off-by-one error]
 
-Jarvis: "Off-by-one em loop. Registrei como erro processual.
+HexxonAI: "Off-by-one em loop. Registrei como erro processual.
 Esse padrão apareceu 3x nas últimas 2 semanas. Dica: sempre
 verifique se o range inclui ou exclui o último elemento."
 ```
@@ -1532,13 +1532,13 @@ verifique se o range inclui ou exclui o último elemento."
 
 ```typescript
 // Bidirecional:
-// Jarvis → Calendar: sessões de estudo planejadas aparecem no calendar
-// Calendar → Jarvis: mudanças de horário recalculam o plano
+// HexxonAI → Calendar: sessões de estudo planejadas aparecem no calendar
+// Calendar → HexxonAI: mudanças de horário recalculam o plano
 
 interface CalendarSync {
   study_sessions_to_calendar: boolean;     // sessões planejadas → eventos
   exam_dates_to_calendar: boolean;         // provas → eventos com alertas
-  calendar_to_jarvis: boolean;             // compromissos → Jarvis ajusta plano
+  calendar_to_hexxon-ai: boolean;             // compromissos → HexxonAI ajusta plano
   busy_time_detection: boolean;            // detecta horários ocupados automaticamente
 }
 ```
@@ -1550,22 +1550,22 @@ interface CalendarSync {
 
 Colega: "alguém sabe resolver aquele exercício 3 da lista de limites?"
 
-Jarvis Bot: "O exercício 3 pede lim(x→0) (1-cos(x))/x².
+HexxonAI Bot: "O exercício 3 pede lim(x→0) (1-cos(x))/x².
 Dica sem spoiler: use a identidade 1-cos(x) = 2sin²(x/2).
 Quer a resolução completa? Responde 'sim'."
 
-[Mensagem direta para o Jarvis Bot]
+[Mensagem direta para o HexxonAI Bot]
 
 Otávio: "estudei 30min de derivadas"
 
-Jarvis: "Registrado ✓ Sessão de 30min salva.
+HexxonAI: "Registrado ✓ Sessão de 30min salva.
 Quer fazer 3 exercícios rápidos pra consolidar?"
 ```
 
-**CLI Tool — Jarvis no Terminal:**
+**CLI Tool — HexxonAI no Terminal:**
 
 ```bash
-$ jarvis status
+$ hexxon-ai status
 ┌─────────────────────────────────────┐
 │ P1 Cálculo: 15 dias · Readiness 48%│
 │ P1 Discreta: 19 dias · Readiness 61%│
@@ -1573,14 +1573,14 @@ $ jarvis status
 │ Streak: 5 dias 🔥                   │
 └─────────────────────────────────────┘
 
-$ jarvis study limits --time 30
+$ hexxon-ai study limits --time 30
 Starting study session: Cálculo de Limites (30 min)
 Exercise 1/6: lim(x→3) (x²-9)/(x-3) = ?
 > 6
 ✅ Correct (12s)
 Exercise 2/6: ...
 
-$ jarvis capture "errei derivada de ln(x), confundi com 1/x²"
+$ hexxon-ai capture "errei derivada de ln(x), confundi com 1/x²"
 Captured ✓ Error logged: Derivadas (processual — fórmula incorreta)
 ```
 
@@ -1608,7 +1608,7 @@ Captured ✓ Error logged: Derivadas (processual — fórmula incorreta)
 
 ---
 
-### 5.0.6 — Institutional Intelligence: Jarvis para Universidades
+### 5.0.6 — Institutional Intelligence: HexxonAI para Universidades
 
 **O problema que resolve:** O Modo Professor do 4.0 é individual. O 5.0 escala isso para a instituição inteira. A universidade pode ter um painel de inteligência educacional que mostra padrões sistêmicos — não para vigiar alunos, mas para melhorar o ensino.
 
@@ -1657,16 +1657,16 @@ interface InstitutionalPolicy {
 
 ---
 
-### 5.0.7 — Jarvis Research Mode: Do Estudo à Produção de Conhecimento
+### 5.0.7 — HexxonAI Research Mode: Do Estudo à Produção de Conhecimento
 
-**O problema que resolve:** Até o 4.0, o Jarvis ajuda a *consumir* conhecimento. Mas na universidade, especialmente a partir do 3º-4º semestre, o aluno começa a *produzir* conhecimento — trabalhos de conclusão, artigos, projetos de pesquisa. O Jarvis pode ser o copiloto de pesquisa.
+**O problema que resolve:** Até o 4.0, o HexxonAI ajuda a *consumir* conhecimento. Mas na universidade, especialmente a partir do 3º-4º semestre, o aluno começa a *produzir* conhecimento — trabalhos de conclusão, artigos, projetos de pesquisa. O HexxonAI pode ser o copiloto de pesquisa.
 
 **Como funciona:**
 
 ```
 [Otávio no 4º semestre, começando IC em Grafos]
 
-Jarvis: "Modo Pesquisa ativado para: 'Algoritmos de
+HexxonAI: "Modo Pesquisa ativado para: 'Algoritmos de
 Detecção de Comunidades em Grafos Dinâmicos'
 
 📚 Literature Review assistido:
@@ -1738,26 +1738,26 @@ interface ResearchMode {
 ```
               MAR    ABR    MAI    JUN    JUL    AGO    SET    OUT    NOV
               ├──────┼──────┼──────┼──────┼──────┼──────┼──────┼──────┤
-JARVIS 3.0    ██████ ←── 6 ideias core
+HEXXONAI 3.0    ██████ ←── 6 ideias core
                      │
-JARVIS 3.1           ████████
+HEXXONAI 3.1           ████████
                      │ Multimodal + Quick Capture
                      │ Peer Teaching + Self-Analytics
                      │          │
-JARVIS 3.2                     ████████
+HEXXONAI 3.2                     ████████
                                │ Cross-discipline + Adaptive Flow
                                │ Predictive Engine + Memory
                                │          │
-JARVIS 3.5                                ██████████████
+HEXXONAI 3.5                                ██████████████
                                           │ Multi-user + Auth + RLS
                                           │ Onboarding + Plugins + PWA
                                           │                │
-JARVIS 4.0                                                 ██████████████
+HEXXONAI 4.0                                                 ██████████████
                                                            │ Agente autônomo
                                                            │ Transfer + KG evolution
                                                            │ Meta-otimização + Prof.
                                                            │              │
-JARVIS 5.0                                                                ██████████████ →→
+HEXXONAI 5.0                                                                ██████████████ →→
                                                                           │ Social Learning
                                                                           │ Real-World Bridge
                                                                           │ Career Intelligence
@@ -1775,9 +1775,9 @@ Cada versão segue quatro regras:
 
 **1. Dados das versões anteriores alimentam as seguintes.** O Self-Analytics do 3.1 depende dos dados da Forgetting Curve do 3.0. A Predictive Engine do 3.2 depende dos dados do Self-Analytics. O Transfer Learning do 4.0 depende de tudo que veio antes. O Social Learning do 5.0 multiplica o valor de tudo que cada aluno construiu individualmente. Nada é descartado — tudo acumula.
 
-**2. Complexidade interna, simplicidade externa.** Cada versão adiciona camadas de inteligência por baixo, mas a interface do aluno fica mais simples, não mais complexa. O Nível 4 de autonomia do 4.0 significa que o aluno faz *menos* — o Jarvis faz mais. O Learning OS do 5.0 significa que o aluno nem precisa abrir o app — o Jarvis está onde ele está.
+**2. Complexidade interna, simplicidade externa.** Cada versão adiciona camadas de inteligência por baixo, mas a interface do aluno fica mais simples, não mais complexa. O Nível 4 de autonomia do 4.0 significa que o aluno faz *menos* — o HexxonAI faz mais. O Learning OS do 5.0 significa que o aluno nem precisa abrir o app — o HexxonAI está onde ele está.
 
-**3. O aluno sempre tem controle.** De autonomia Nível 1 a Nível 4, cada passo é opt-in. O aluno pode reverter qualquer ação autônoma. No 5.0, dados compartilhados são sempre opt-in e anonimizáveis. Transparência total — o Jarvis sempre explica o que fez e por quê.
+**3. O aluno sempre tem controle.** De autonomia Nível 1 a Nível 4, cada passo é opt-in. O aluno pode reverter qualquer ação autônoma. No 5.0, dados compartilhados são sempre opt-in e anonimizáveis. Transparência total — o HexxonAI sempre explica o que fez e por quê.
 
 **4. Conhecimento é do aluno, não da plataforma.** O Open Knowledge Protocol do 5.0 garante que tudo que o aluno construiu é exportável, portável, e nunca fica preso. Se o aluno sair, leva tudo. Se ficar, contribui com a comunidade e recebe de volta.
 
@@ -1786,14 +1786,14 @@ Cada versão segue quatro regras:
 ## A Progressão Filosófica
 
 ```
-3.0  →  O Jarvis sabe o que você está fazendo.
-3.1  →  O Jarvis sente o que você está fazendo (por qualquer canal).
-3.2  →  O Jarvis pensa sobre como você pensa.
-3.5  →  O Jarvis funciona para qualquer pessoa.
-4.0  →  O Jarvis age sozinho enquanto você dorme.
-5.0  →  O Jarvis conecta seu conhecimento com o mundo.
+3.0  →  O HexxonAI sabe o que você está fazendo.
+3.1  →  O HexxonAI sente o que você está fazendo (por qualquer canal).
+3.2  →  O HexxonAI pensa sobre como você pensa.
+3.5  →  O HexxonAI funciona para qualquer pessoa.
+4.0  →  O HexxonAI age sozinho enquanto você dorme.
+5.0  →  O HexxonAI conecta seu conhecimento com o mundo.
 ```
 
 *"O 3.0 é o copiloto. O 4.0 é o segundo cérebro. O 5.0 é o sistema nervoso de uma comunidade inteira de aprendizagem."*
 
-— Roadmap Jarvis 3.1→5.0, 27 de março de 2026
+— Roadmap HexxonAI 3.1→5.0, 27 de março de 2026

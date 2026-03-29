@@ -178,14 +178,16 @@ export function LiveMarkdownSegment({
     const editor = editorRef.current;
     if (!editor) return;
 
-    const normalizedValue = normalizeEditorText(editor.innerText);
+    // Browsers append a trailing \n to innerText of contentEditable elements;
+    // strip it so we don't create a phantom empty line at the bottom.
+    const raw = normalizeEditorText(editor.innerText).replace(/\n$/, "");
     const selection = getSelectionOffsets(editor) ?? {
-      start: normalizedValue.length,
-      end: normalizedValue.length,
+      start: raw.length,
+      end: raw.length,
     };
 
     pendingSelectionRef.current = selection;
-    onChange(normalizedValue, selection.start, selection.end);
+    onChange(raw, selection.start, selection.end);
   }
 
   function handleSelectionUpdate() {

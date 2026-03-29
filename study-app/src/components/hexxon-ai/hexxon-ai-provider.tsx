@@ -4,23 +4,23 @@ import { createContext, useContext, useCallback, useState } from "react"
 import { usePathname } from "next/navigation"
 import { FloatingButton } from "./floating-button"
 
-interface JarvisContextValue {
+interface HexxonAiContextValue {
   openWithMessage: (message: string) => void
   pendingMessage: string | null
   clearPendingMessage: () => void
 }
 
-const JarvisCtx = createContext<JarvisContextValue>({
+const HexxonAiCtx = createContext<HexxonAiContextValue>({
   openWithMessage: () => {},
   pendingMessage: null,
   clearPendingMessage: () => {},
 })
 
-export function useJarvis() {
-  return useContext(JarvisCtx)
+export function useHexxonAI() {
+  return useContext(HexxonAiCtx)
 }
 
-export function JarvisProvider() {
+export function HexxonAiProvider() {
   const pathname = usePathname()
   const [pendingMessage, setPendingMessage] = useState<string | null>(null)
 
@@ -32,15 +32,15 @@ export function JarvisProvider() {
     setPendingMessage(null)
   }, [])
 
-  // Don't show floating button on the full Jarvis page
-  const showFloating = pathname !== "/jarvis"
+  // Don't show floating button on the full HexxonAI page
+  const showFloating = pathname !== "/hexxon-ai"
 
   // Extract discipline/topic from URL if on discipline page
   const disciplineMatch = pathname.match(/^\/disciplina\/(.+)$/)
   const disciplineId = disciplineMatch?.[1]
 
   return (
-    <JarvisCtx.Provider value={{ openWithMessage, pendingMessage, clearPendingMessage }}>
+    <HexxonAiCtx.Provider value={{ openWithMessage, pendingMessage, clearPendingMessage }}>
       {showFloating && (
         <FloatingButton
           currentPage={pathname}
@@ -49,6 +49,6 @@ export function JarvisProvider() {
           onMessageConsumed={clearPendingMessage}
         />
       )}
-    </JarvisCtx.Provider>
+    </HexxonAiCtx.Provider>
   )
 }

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Bot, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-interface JarvisTipProps {
+interface HexxonAiTipProps {
   message: string
   actionLabel?: string
   onAction?: () => void
@@ -19,14 +19,14 @@ const variantStyles = {
   success: 'border-l-accent-success bg-accent-success/5',
 }
 
-export function JarvisTip({
+export function HexxonAiTip({
   message,
   actionLabel,
   onAction,
   dismissible = true,
   variant = 'default',
   className,
-}: JarvisTipProps) {
+}: HexxonAiTipProps) {
   const [dismissed, setDismissed] = useState(false)
 
   if (dismissed) return null

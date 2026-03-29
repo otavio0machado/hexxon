@@ -6,7 +6,7 @@ import type { InteractiveBlockFrame } from "@/lib/notes/renderable-blocks";
 const RESIZE_EVENT = "hexxon:interactive-resize";
 
 function clampHeight(value: number) {
-  return Math.min(1200, Math.max(420, Math.round(value)));
+  return Math.min(3000, Math.max(300, Math.round(value)));
 }
 
 function injectIntoHead(documentHtml: string, injection: string) {
@@ -63,8 +63,8 @@ function buildSrcDoc({
     <style>
       :root { color-scheme: dark; }
       * { box-sizing: border-box; }
-      html, body { margin: 0; min-height: 100%; background: #09090b; color: #f5f7fb; }
-      body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+      html, body { margin: 0; min-height: 100%; background: transparent; color: #f5f7fb; }
+      body { font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; padding: 8px; }
       button, input, select, textarea { font: inherit; }
     </style>
   `;

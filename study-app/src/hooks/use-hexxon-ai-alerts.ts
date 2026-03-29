@@ -1,20 +1,20 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import type { JarvisInsight } from '@/lib/services/insights-engine'
+import type { HexxonAiInsight } from '@/lib/services/insights-engine'
 
-interface UseJarvisAlertsReturn {
-  alerts: JarvisInsight[]
+interface UseHexxonAiAlertsReturn {
+  alerts: HexxonAiInsight[]
   isLoading: boolean
   error: string | null
   dismiss: (id: string) => void
   refresh: () => void
 }
 
-const CACHE_KEY = 'hexxon-jarvis-alerts'
+const CACHE_KEY = 'hexxon-hexxon-ai-alerts'
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes
 
-function getCached(): { alerts: JarvisInsight[]; timestamp: number } | null {
+function getCached(): { alerts: HexxonAiInsight[]; timestamp: number } | null {
   try {
     const raw = sessionStorage.getItem(CACHE_KEY)
     if (!raw) return null
@@ -26,14 +26,14 @@ function getCached(): { alerts: JarvisInsight[]; timestamp: number } | null {
   }
 }
 
-function setCache(alerts: JarvisInsight[]) {
+function setCache(alerts: HexxonAiInsight[]) {
   try {
     sessionStorage.setItem(CACHE_KEY, JSON.stringify({ alerts, timestamp: Date.now() }))
   } catch { /* quota exceeded */ }
 }
 
-export function useJarvisAlerts(): UseJarvisAlertsReturn {
-  const [alerts, setAlerts] = useState<JarvisInsight[]>([])
+export function useHexxonAiAlerts(): UseHexxonAiAlertsReturn {
+  const [alerts, setAlerts] = useState<HexxonAiInsight[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dismissed, setDismissed] = useState<Set<string>>(new Set())
@@ -51,13 +51,13 @@ export function useJarvisAlerts(): UseJarvisAlertsReturn {
     setIsLoading(true)
     try {
       // Generate fresh insights then fetch active ones
-      await fetch('/api/jarvis/insights', {
+      await fetch('/api/hexxon-ai/insights', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'generate' }),
       })
 
-      const res = await fetch('/api/jarvis/insights')
+      const res = await fetch('/api/hexxon-ai/insights')
       if (!res.ok) throw new Error('Failed to fetch alerts')
       const { insights } = await res.json()
       setAlerts(insights ?? [])
@@ -76,7 +76,7 @@ export function useJarvisAlerts(): UseJarvisAlertsReturn {
 
   const dismiss = useCallback((id: string) => {
     setDismissed(prev => new Set(prev).add(id))
-    fetch('/api/jarvis/insights', {
+    fetch('/api/hexxon-ai/insights', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'mark_read', insightId: id }),

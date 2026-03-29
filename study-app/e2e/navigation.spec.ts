@@ -63,10 +63,10 @@ test.describe('API Protection', () => {
     }
   })
 
-  test('Jarvis endpoints require authentication', async ({ request }) => {
+  test('HexxonAI endpoints require authentication', async ({ request }) => {
     const endpoints = [
-      '/api/jarvis',
-      '/api/jarvis/stream',
+      '/api/hexxon-ai',
+      '/api/hexxon-ai/stream',
     ]
 
     for (const endpoint of endpoints) {
@@ -75,8 +75,8 @@ test.describe('API Protection', () => {
     }
   })
 
-  test('Jarvis insights requires authentication', async ({ request }) => {
-    const res = await request.get('/api/jarvis/insights')
+  test('HexxonAI insights requires authentication', async ({ request }) => {
+    const res = await request.get('/api/hexxon-ai/insights')
     expect(res.status()).toBe(401)
   })
 })

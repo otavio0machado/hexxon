@@ -19,7 +19,7 @@ import { Select } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { EmptyState } from '@/components/ui/empty-state'
-import { JarvisTip } from '@/components/jarvis/jarvis-tip'
+import { HexxonAiTip } from '@/components/hexxon-ai/hexxon-ai-tip'
 
 type FilterType = "all" | "prova" | "trabalho" | "ps" | "g2";
 type FilterStatus = "all" | "upcoming" | "ready" | "completed";
@@ -119,7 +119,7 @@ export default function ProvasPage() {
     grouped.get(key)!.push(a);
   });
 
-  // Detect upcoming exam within 7 days for Jarvis tip
+  // Detect upcoming exam within 7 days for HexxonAI tip
   const upcomingExamSoon = useMemo(() => {
     const now = Date.now();
     const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
@@ -375,12 +375,12 @@ export default function ProvasPage() {
         )}
       </div>
 
-      {/* Jarvis upcoming exam tip */}
+      {/* HexxonAI upcoming exam tip */}
       {upcomingExamSoon && daysUntilExam !== null && (
-        <JarvisTip
+        <HexxonAiTip
           message={`Você tem uma prova em ${daysUntilExam} dia${daysUntilExam !== 1 ? "s" : ""}: "${upcomingExamSoon.name}". Que tal preparar um plano de estudo?`}
           actionLabel="Preparar plano"
-          onAction={() => router.push("/jarvis")}
+          onAction={() => router.push("/hexxon-ai")}
           variant={daysUntilExam <= 3 ? "warning" : "default"}
         />
       )}

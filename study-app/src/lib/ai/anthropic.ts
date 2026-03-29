@@ -248,20 +248,18 @@ export function parseJSON<T>(raw: string): T {
 }
 
 /**
- * Attempts to repair truncated JSON by closing unclosed brackets/braces.
- * Handles cases where maxTokens cuts off the response mid-JSON.
+ * Attempts to repair truncated JSON by closing unclosed strings and brackets.
+ * Handles cases where maxTokens cuts off the response mid-JSON (e.g. large HTML in a string field).
  */
 function repairTruncatedJSON(json: string): string {
   let repaired = json.trim();
 
-  // Remove trailing comma
-  repaired = repaired.replace(/,\s*$/, "");
+  // Remove trailing incomplete escape sequence
+  repaired = repaired.replace(/\\$/, "");
 
-  // Remove incomplete string at the end (trailing unclosed quote)
-  // Find if we have an unclosed string
+  // Check if we're inside an unclosed string
   let inString = false;
   let escaped = false;
-  let lastCompleteIdx = 0;
 
   for (let i = 0; i < repaired.length; i++) {
     const ch = repaired[i];
@@ -275,22 +273,18 @@ function repairTruncatedJSON(json: string): string {
     }
     if (ch === '"') {
       inString = !inString;
-      if (!inString) {
-        lastCompleteIdx = i;
-      }
-    } else if (!inString) {
-      if (ch === "}" || ch === "]" || ch === "," || ch === ":") {
-        lastCompleteIdx = i;
-      }
     }
   }
 
-  // If we're inside an unclosed string, truncate to last complete point
+  // If inside an unclosed string, close it in place (preserving content)
   if (inString) {
-    repaired = repaired.slice(0, lastCompleteIdx + 1);
-    // Remove trailing comma
-    repaired = repaired.replace(/,\s*$/, "");
+    // Remove any trailing incomplete escape or broken UTF sequence
+    repaired = repaired.replace(/\\[^"\\\/bfnrtu]?$/, "");
+    repaired += '"';
   }
+
+  // Remove trailing comma
+  repaired = repaired.replace(/,\s*$/, "");
 
   // Count unclosed brackets/braces and close them
   const stack: string[] = [];

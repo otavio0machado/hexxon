@@ -29,8 +29,8 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
-import type { JarvisMessage, ModelId, ModelInfo, PostAction } from '@/lib/jarvis/types'
-import { MODELS } from '@/lib/jarvis/types'
+import type { HexxonAiMessage, ModelId, ModelInfo, PostAction } from '@/lib/hexxon-ai/types'
+import { MODELS } from '@/lib/hexxon-ai/types'
 import {
   createConversation,
   getMessages,
@@ -51,7 +51,7 @@ const MermaidDiagram = dynamic(
   { ssr: false, loading: () => <div className="h-40 flex items-center justify-center text-xs text-fg-muted">Renderizando diagrama...</div> }
 )
 
-interface JarvisChatProps {
+interface HexxonAiChatProps {
   mode: 'floating' | 'fullpage'
   currentPage?: string
   disciplineId?: string
@@ -132,7 +132,7 @@ function MessageContent({ content }: { content: string }) {
   }, [content])
 
   return (
-    <div className="jarvis-prose text-sm text-fg-primary leading-relaxed">
+    <div className="hexxon-ai-prose text-sm text-fg-primary leading-relaxed">
       {segments.map((seg, i) =>
         seg.type === 'svg' ? (
           <div
@@ -280,7 +280,7 @@ function CodeBlock({ lang, code }: { lang: string; code: string }) {
 
 // ── Main Chat Component ──────────────────────────────────────
 
-export function JarvisChat({
+export function HexxonAiChat({
   mode,
   currentPage,
   disciplineId,
@@ -288,9 +288,9 @@ export function JarvisChat({
   conversationId: externalConversationId,
   onConversationCreated,
   onConversationUpdated,
-}: JarvisChatProps) {
+}: HexxonAiChatProps) {
   const toast = useToast()
-  const [messages, setMessages] = useState<JarvisMessage[]>([])
+  const [messages, setMessages] = useState<HexxonAiMessage[]>([])
   const [currentModel, setCurrentModel] = useState<ModelId>('auto')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -302,17 +302,17 @@ export function JarvisChat({
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [lastFailedInput, setLastFailedInput] = useState<string | null>(null)
   const [thinkingTool, setThinkingTool] = useState<string | null>(null)
-  const [jarvisAlerts, setJarvisAlerts] = useState<Array<{ type: string; title: string; data?: Record<string, unknown> }>>([])
+  const [hexxonAiAlerts, setHexxonAiAlerts] = useState<Array<{ type: string; title: string; data?: Record<string, unknown> }>>([])
 
   // Fetch alerts for contextual suggestions
   useEffect(() => {
-    fetch('/api/jarvis/insights')
+    fetch('/api/hexxon-ai/insights')
       .then(r => r.ok ? r.json() : { insights: [] })
-      .then(d => setJarvisAlerts(d.insights ?? []))
+      .then(d => setHexxonAiAlerts(d.insights ?? []))
       .catch(() => {})
   }, [])
 
-  const SUGGESTIONS = useMemo(() => getContextualSuggestions(jarvisAlerts), [jarvisAlerts])
+  const SUGGESTIONS = useMemo(() => getContextualSuggestions(hexxonAiAlerts), [hexxonAiAlerts])
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -338,7 +338,7 @@ export function JarvisChat({
       })
       .catch((err) => {
         if (!cancelled) {
-          console.error('Failed to load Jarvis messages:', err)
+          console.error('Failed to load HexxonAI messages:', err)
           setError('Não foi possível carregar as mensagens desta conversa.')
           setMessages([])
         }
@@ -376,7 +376,7 @@ export function JarvisChat({
   const sendMessage = async (content: string) => {
     if (!content.trim()) return
 
-    const userMsg: JarvisMessage = {
+    const userMsg: HexxonAiMessage = {
       id: `user_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       role: 'user',
       content,
@@ -419,12 +419,12 @@ export function JarvisChat({
     }
   }
 
-  const sendStreamingRequest = async (allMessages: JarvisMessage[], convId: string) => {
-    const assistantMsgId = `jarvis_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
+  const sendStreamingRequest = async (allMessages: HexxonAiMessage[], convId: string) => {
+    const assistantMsgId = `hexxonai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
     let streamedContent = ''
-    let toolResults: JarvisMessage['toolResults']
-    let postActions: JarvisMessage['postActions']
-    let meta: JarvisMessage['meta']
+    let toolResults: HexxonAiMessage['toolResults']
+    let postActions: HexxonAiMessage['postActions']
+    let meta: HexxonAiMessage['meta']
 
     // Add placeholder assistant message
     setMessages((prev) => [...prev, {
@@ -435,7 +435,7 @@ export function JarvisChat({
       timestamp: Date.now(),
     }])
 
-    const res = await fetch('/api/jarvis/stream', {
+    const res = await fetch('/api/hexxon-ai/stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -515,7 +515,7 @@ export function JarvisChat({
     }
 
     // Save final message
-    const finalMsg: JarvisMessage = {
+    const finalMsg: HexxonAiMessage = {
       id: assistantMsgId,
       role: 'assistant',
       content: streamedContent,
@@ -531,8 +531,8 @@ export function JarvisChat({
     }
   }
 
-  const sendRegularRequest = async (allMessages: JarvisMessage[], convId: string) => {
-    const res = await fetch('/api/jarvis', {
+  const sendRegularRequest = async (allMessages: HexxonAiMessage[], convId: string) => {
+    const res = await fetch('/api/hexxon-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -550,7 +550,7 @@ export function JarvisChat({
     }
 
     const data = await res.json()
-    const assistantMsg: JarvisMessage = data.message
+    const assistantMsg: HexxonAiMessage = data.message
     setMessages((prev) => [...prev, assistantMsg])
 
     await saveMessage(convId, assistantMsg).catch(() => toast.warning('Erro ao salvar resposta.'))
@@ -562,7 +562,7 @@ export function JarvisChat({
   const handleExecuteAction = async (action: PostAction) => {
     if (isLoading) return
 
-    const userMsg: JarvisMessage = {
+    const userMsg: HexxonAiMessage = {
       id: `user_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       role: 'user',
       content: action.label,
@@ -580,7 +580,7 @@ export function JarvisChat({
 
       await saveMessage(convId, userMsg).catch(() => toast.warning('Erro ao salvar mensagem. Ela pode não persistir.'))
 
-      const res = await fetch('/api/jarvis', {
+      const res = await fetch('/api/hexxon-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -599,7 +599,7 @@ export function JarvisChat({
       }
 
       const data = await res.json()
-      const assistantMsg: JarvisMessage = data.message
+      const assistantMsg: HexxonAiMessage = data.message
 
       setMessages((prev) => [...prev, assistantMsg])
 
@@ -980,7 +980,7 @@ export function JarvisChat({
               </div>
             ))}
 
-            {isLoading && !messages.some(m => m.role === 'assistant' && m.content === '' && m.id?.startsWith('jarvis_')) && (
+            {isLoading && !messages.some(m => m.role === 'assistant' && m.content === '' && m.id?.startsWith('hexxonai_')) && (
               <div className="flex gap-3">
                 <div className="flex-shrink-0 w-7 h-7 rounded-lg bg-bg-tertiary flex items-center justify-center">
                   <Bot className="w-3.5 h-3.5 text-accent-info" />

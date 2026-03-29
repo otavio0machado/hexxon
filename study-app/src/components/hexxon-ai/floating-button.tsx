@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Bot, X } from 'lucide-react'
-import { JarvisChat } from './chat'
+import { HexxonAiChat } from './chat'
 import type { ConversationRow } from '@/lib/services/conversations'
 
 interface FloatingButtonProps {
@@ -24,7 +24,7 @@ export function FloatingButton({
   const [unreadCount, setUnreadCount] = useState(0)
   const [floatingConvId, setFloatingConvId] = useState<string | null>(null)
 
-  // Auto-open when a message is pending from JarvisProvider
+  // Auto-open when a message is pending from HexxonAiProvider
   useEffect(() => {
     if (initialMessage) {
       setIsOpen(true)
@@ -39,8 +39,8 @@ export function FloatingButton({
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement
-      const panel = document.getElementById('jarvis-floating-panel')
-      const button = document.getElementById('jarvis-floating-button')
+      const panel = document.getElementById('hexxon-ai-floating-panel')
+      const button = document.getElementById('hexxon-ai-floating-button')
 
       if (
         panel &&
@@ -64,7 +64,7 @@ export function FloatingButton({
     <>
       {/* Floating Button */}
       <button
-        id="jarvis-floating-button"
+        id="hexxon-ai-floating-button"
         onClick={() => {
           setIsOpen(!isOpen)
           if (!isOpen) {
@@ -90,7 +90,7 @@ export function FloatingButton({
       {/* Chat Panel */}
       {isOpen && (
         <div
-          id="jarvis-floating-panel"
+          id="hexxon-ai-floating-panel"
           className="fixed bottom-24 right-6 w-96 h-96 rounded-lg shadow-2xl flex flex-col animate-in slide-in-from-bottom-4 fade-in z-40"
           style={{
             animation: 'slideUp 0.3s ease-out',
@@ -126,7 +126,7 @@ export function FloatingButton({
 
           {/* Chat Container */}
           <div className="flex-1 overflow-hidden">
-            <JarvisChat
+            <HexxonAiChat
               mode="floating"
               currentPage={currentPage}
               disciplineId={disciplineId}

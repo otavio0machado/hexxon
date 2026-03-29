@@ -21,7 +21,7 @@ import {
   FileText,
   Bot,
 } from 'lucide-react'
-import { JarvisChat } from '@/components/jarvis/chat'
+import { HexxonAiChat } from '@/components/hexxon-ai/chat'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import {
@@ -31,7 +31,7 @@ import {
   type ConversationRow,
 } from '@/lib/services/conversations'
 
-export default function JarvisPage() {
+export default function HexxonAiPage() {
   const pathname = usePathname()
   const [conversations, setConversations] = useState<ConversationRow[]>([])
   const [activeConversation, setActiveConversation] = useState<string | null>(null)
@@ -52,7 +52,7 @@ export default function JarvisPage() {
         setActiveConversation((prev) => prev ?? data[0].id)
       }
     } catch (err) {
-      console.error('Failed to load Jarvis conversations:', err)
+      console.error('Failed to load HexxonAI conversations:', err)
       setConversationsError('Não foi possível carregar o histórico de conversas.')
     } finally {
       setLoadingConversations(false)
@@ -103,7 +103,7 @@ export default function JarvisPage() {
     setChatKey((k) => k + 1)
   }
 
-  // Called by JarvisChat when it auto-creates a conversation
+  // Called by HexxonAiChat when it auto-creates a conversation
   const handleConversationCreated = useCallback((conv: ConversationRow) => {
     setConversations((prev) => {
       // Avoid duplicates
@@ -113,7 +113,7 @@ export default function JarvisPage() {
     setActiveConversation(conv.id)
   }, [])
 
-  // Called by JarvisChat when it updates the title
+  // Called by HexxonAiChat when it updates the title
   const handleConversationUpdated = useCallback((id: string, title: string) => {
     setConversations((prev) =>
       prev.map((c) => (c.id === id ? { ...c, title } : c))
@@ -316,7 +316,7 @@ export default function JarvisPage() {
 
         {/* Chat Area */}
         <div className="flex-1 overflow-hidden">
-          <JarvisChat
+          <HexxonAiChat
             key={chatKey}
             mode="fullpage"
             currentPage={pathname}

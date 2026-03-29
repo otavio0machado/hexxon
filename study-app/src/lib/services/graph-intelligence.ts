@@ -1,6 +1,6 @@
 // ============================================================
 // Graph Intelligence — Learning paths, blockers, unlocks
-// The "brain" that powers Jarvis 3.0 decisions via knowledge graph
+// The "brain" that powers HexxonAI 3.0 decisions via knowledge graph
 // ============================================================
 
 import type { KgNode, KgEdge, MasteryLevel } from '../supabase'

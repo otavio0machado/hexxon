@@ -152,6 +152,60 @@ function normalizeXyChart(raw: string) {
   return result.join("\n").trim();
 }
 
+/**
+ * Sanitize mindmap node text by replacing special Mermaid shape delimiters.
+ * In Mermaid mindmap syntax, (), [], {}, (()) etc. define node shapes,
+ * so literal parentheses/brackets in content must be replaced.
+ */
+function normalizeMindmap(raw: string) {
+  const lines = extractFromFirstStarter(raw).split("\n");
+  const result: string[] = [];
+
+  for (const line of lines) {
+    const trimmed = line.trimEnd();
+
+    // First line is always "mindmap" — keep as-is
+    if (result.length === 0) {
+      result.push(trimmed.trim().startsWith("mindmap") ? trimmed : "mindmap");
+      continue;
+    }
+
+    // Empty lines are fine
+    if (!trimmed.trim()) {
+      result.push("");
+      continue;
+    }
+
+    if (isLikelyNarrativeLine(trimmed.trim())) {
+      break;
+    }
+
+    // Preserve leading whitespace (indentation matters in mindmap)
+    const indent = trimmed.match(/^(\s*)/)?.[0] ?? "";
+    let content = trimmed.trim();
+
+    // The root node uses root((...)) or root(...) syntax — preserve that
+    if (/^root\s*\(/.test(content)) {
+      result.push(trimmed);
+      continue;
+    }
+
+    // For regular nodes: replace problematic characters in node text
+    // Parentheses () → remove or replace with nothing/dash
+    // Square brackets [] → remove
+    // Curly braces {} → remove
+    // These are Mermaid shape delimiters and cause parse errors
+    content = content
+      .replace(/\(([^)]*)\)/g, "$1")  // (CH3) → CH3
+      .replace(/\[([^\]]*)\]/g, "$1")  // [something] → something
+      .replace(/\{([^}]*)\}/g, "$1"); // {something} → something
+
+    result.push(`${indent}${content}`);
+  }
+
+  return result.join("\n").trim();
+}
+
 export function normalizeMermaidChart(raw: string) {
   const extracted = extractFromFirstStarter(raw);
   const firstLine = extracted.split("\n")[0]?.trim() ?? "";
@@ -162,6 +216,10 @@ export function normalizeMermaidChart(raw: string) {
 
   if (firstLine.startsWith("xychart")) {
     return normalizeXyChart(extracted);
+  }
+
+  if (firstLine.startsWith("mindmap")) {
+    return normalizeMindmap(extracted);
   }
 
   const lines = extracted.split("\n");

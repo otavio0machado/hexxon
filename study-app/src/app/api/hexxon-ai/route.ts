@@ -1,13 +1,13 @@
 // ============================================================
-// JARVIS — API Route
-// POST /api/jarvis — Main endpoint for Jarvis interactions
+// HEXXONAI — API Route
+// POST /api/hexxon-ai — Main endpoint for HexxonAI interactions
 // ============================================================
 
 import { NextResponse } from 'next/server'
-import { orchestrate } from '@/lib/jarvis/orchestrator'
-import { buildContext } from '@/lib/jarvis/context'
-import { executeTool, getTool } from '@/lib/jarvis/tools'
-import type { ModelId, JarvisMessage, PostAction } from '@/lib/jarvis/types'
+import { orchestrate } from '@/lib/hexxon-ai/orchestrator'
+import { buildContext } from '@/lib/hexxon-ai/context'
+import { executeTool, getTool } from '@/lib/hexxon-ai/tools'
+import type { ModelId, HexxonAiMessage, PostAction } from '@/lib/hexxon-ai/types'
 
 function buildActionInstruction(action: PostAction): string {
   const params = Object.keys(action.params).length > 0
@@ -25,10 +25,10 @@ function buildActionInstruction(action: PostAction): string {
 function makeAssistantMessage(
   model: ModelId,
   content: string,
-  toolResults: JarvisMessage['toolResults'] = [],
-): JarvisMessage {
+  toolResults: HexxonAiMessage['toolResults'] = [],
+): HexxonAiMessage {
   return {
-    id: `jarvis_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    id: `hexxonai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     role: 'assistant',
     content,
     model,
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       noteContent,
       noteTitle,
     } = body as {
-      messages?: JarvisMessage[]
+      messages?: HexxonAiMessage[]
       action?: PostAction
       model: ModelId
       currentPage?: string
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
         })
       }
 
-      const actionMessage: JarvisMessage = {
+      const actionMessage: HexxonAiMessage = {
         id: `action_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
         role: 'user',
         content: buildActionInstruction(action),
@@ -123,7 +123,7 @@ export async function POST(request: Request) {
       toolsExecuted: result.toolsExecuted,
     })
   } catch (error) {
-    console.error('[Jarvis API Error]', error)
+    console.error('[HexxonAI API Error]', error)
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     const statusCode = errorMessage.includes('API key') ? 401

@@ -1,5 +1,5 @@
 // ============================================================
-// JARVIS — Type System
+// HEXXONAI — Type System
 // ============================================================
 
 // ── Provider Models ─────────────────────────────────────────
@@ -60,7 +60,7 @@ export const MODELS: Record<string, ModelInfo> = {
 
 // ── Messages ────────────────────────────────────────────────
 
-export interface JarvisMessage {
+export interface HexxonAiMessage {
   id: string
   role: 'user' | 'assistant' | 'system' | 'tool'
   content: string
@@ -94,7 +94,7 @@ export interface ToolDefinition {
   category: 'notes' | 'flashcards' | 'sessions' | 'exercises' | 'exams' | 'errors' | 'explain' | 'progress' | 'visual' | 'ai-services' | 'tutoring'
   parameters: Record<string, ToolParameter>
   required: string[]
-  execute: (params: Record<string, unknown>, context?: JarvisContext) => Promise<ToolResult>
+  execute: (params: Record<string, unknown>, context?: HexxonAiContext) => Promise<ToolResult>
 }
 
 export interface ToolParameter {
@@ -146,7 +146,7 @@ export interface ErrorBreakdown {
   recentExample?: string
 }
 
-export interface JarvisContext {
+export interface HexxonAiContext {
   currentPage: string
   currentDisciplineId?: string
   currentTopicId?: string
@@ -172,14 +172,14 @@ export interface JarvisContext {
 // ── Orchestrator ────────────────────────────────────────────
 
 export interface OrchestratorRequest {
-  messages: JarvisMessage[]
+  messages: HexxonAiMessage[]
   model: ModelId
-  context: JarvisContext
+  context: HexxonAiContext
   stream?: boolean
 }
 
 export interface OrchestratorResponse {
-  message: JarvisMessage
+  message: HexxonAiMessage
   toolsExecuted: ToolResult[]
 }
 

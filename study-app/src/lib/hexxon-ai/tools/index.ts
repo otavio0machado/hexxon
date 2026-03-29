@@ -1,10 +1,10 @@
 // ============================================================
-// JARVIS — Tool Registry
-// All tools that Jarvis can execute on the system
+// HEXXONAI — Tool Registry
+// All tools that HexxonAI can execute on the system
 // ============================================================
 
 import type { ToolDefinition, ToolResult, ProviderTool } from '../types'
-import type { JarvisContext } from '../types'
+import type { HexxonAiContext } from '../types'
 import type { NoteFormat, MasteryLevel, ExerciseType, ErrorCategory, ErrorSeverity, SessionKind, Topic } from '@/lib/supabase'
 import { createNote, updateNote, deleteNote, getNotes, getNotesByTopic, getNotesByDiscipline, getNote } from '@/lib/services/notes'
 import { createFlashcard, deleteFlashcard, getFlashcards, getFlashcardsByTopic, getDueFlashcards, reviewFlashcard } from '@/lib/services/flashcards'
@@ -80,7 +80,7 @@ function findTopicMatch(topics: Topic[], fragments: string[]): Topic | null {
 
 async function resolveNoteTarget(
   params: Record<string, unknown>,
-  context?: JarvisContext,
+  context?: HexxonAiContext,
 ): Promise<{ topicId: string; disciplineId: string; topicName: string }> {
   const explicitTopicId = typeof params.topic_id === 'string' && params.topic_id.trim().length > 0
     ? params.topic_id.trim()
@@ -1077,7 +1077,7 @@ const tools: ToolDefinition[] = [
   },
 
   // ══════════════════════════════════════════════════════════
-  // JARVIS 3.0 — Graph Intelligence, Forgetting Curve,
+  // HEXXONAI 3.0 — Graph Intelligence, Forgetting Curve,
   // Insights, Simulation, and Mission Mode
   // ══════════════════════════════════════════════════════════
 
@@ -1295,7 +1295,7 @@ const tools: ToolDefinition[] = [
     required: [],
     execute: async () => {
       try {
-        const insights = await generateInsights('jarvis_manual')
+        const insights = await generateInsights('hexxonai_manual')
         return makeResult('', true, `${insights.length} insight(s) gerados. Use getInsights ou getDailyBriefing para ver.`, { count: insights.length })
       } catch (e) {
         return makeResult('', false, `Erro: ${(e as Error).message}`)
@@ -1691,7 +1691,7 @@ export async function executeTool(
   name: string,
   args: Record<string, unknown>,
   toolCallId: string,
-  context?: JarvisContext,
+  context?: HexxonAiContext,
 ): Promise<ToolResult> {
   const tool = toolMap.get(name)
   if (!tool) {

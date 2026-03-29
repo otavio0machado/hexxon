@@ -1,12 +1,12 @@
 // ============================================================
-// JARVIS — Orchestrator
+// HEXXONAI — Orchestrator
 // Routes requests to providers, executes tools, synthesizes
 // ============================================================
 
 import type {
   ModelId,
-  JarvisMessage,
-  JarvisContext,
+  HexxonAiMessage,
+  HexxonAiContext,
   OrchestratorResponse,
   ProviderResponse,
   ToolResult,
@@ -24,9 +24,9 @@ import { supabase } from '@/lib/supabase'
 // ── Main Entry Point ────────────────────────────────────────
 
 export async function orchestrate(
-  messages: JarvisMessage[],
+  messages: HexxonAiMessage[],
   model: ModelId,
-  context: JarvisContext,
+  context: HexxonAiContext,
 ): Promise<OrchestratorResponse> {
   const systemPrompt = await buildSystemPrompt(context)
   const providerTools = toProviderTools()
@@ -48,9 +48,9 @@ export async function orchestrate(
 // ── Single Model Execution ──────────────────────────────────
 
 async function executeSingleModel(
-  messages: JarvisMessage[],
+  messages: HexxonAiMessage[],
   model: ModelId,
-  context: JarvisContext,
+  context: HexxonAiContext,
   systemPrompt: string,
   providerTools: ReturnType<typeof toProviderTools>,
 ): Promise<OrchestratorResponse> {
@@ -140,8 +140,8 @@ async function executeSingleModel(
   // Log usage
   await logUsage(model, response.usage.inputTokens, response.usage.outputTokens, totalCost, response.durationMs)
 
-  const assistantMessage: JarvisMessage = {
-    id: `jarvis_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  const assistantMessage: HexxonAiMessage = {
+    id: `hexxonai_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     role: 'assistant',
     content: finalContent,
     model,
@@ -163,8 +163,8 @@ async function executeSingleModel(
 // ── Mix Mode ────────────────────────────────────────────────
 
 async function executeMixMode(
-  messages: JarvisMessage[],
-  context: JarvisContext,
+  messages: HexxonAiMessage[],
+  context: HexxonAiContext,
   systemPrompt: string,
   providerTools: ReturnType<typeof toProviderTools>,
 ): Promise<OrchestratorResponse> {
@@ -296,8 +296,8 @@ async function executeMixMode(
   const totalDuration = successResults.reduce((sum, r) => sum + r.durationMs, 0) + synthesisResponse.durationMs
   const postActions = generatePostActions(synthesisResponse.content, toolResults, messages, context)
 
-  const assistantMessage: JarvisMessage = {
-    id: `jarvis_mix_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+  const assistantMessage: HexxonAiMessage = {
+    id: `hexxonai_mix_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     role: 'assistant',
     content: synthesisResponse.content,
     model: 'mix',
@@ -322,8 +322,8 @@ async function executeMixMode(
 function generatePostActions(
   content: string,
   toolResults: ToolResult[],
-  messages: JarvisMessage[],
-  context: JarvisContext,
+  messages: HexxonAiMessage[],
+  context: HexxonAiContext,
 ): PostAction[] {
   const actions: PostAction[] = []
   const ts = Date.now()
@@ -462,13 +462,13 @@ function generatePostActions(
 // ── Streaming Orchestration ─────────────────────────────────
 
 export async function orchestrateStream(
-  messages: JarvisMessage[],
+  messages: HexxonAiMessage[],
   model: ModelId,
-  context: JarvisContext,
+  context: HexxonAiContext,
   onDelta: (delta: string) => void,
   onToolResults: (results: ToolResult[]) => void,
   onPostActions: (actions: PostAction[]) => void,
-  onMeta: (meta: JarvisMessage['meta']) => void,
+  onMeta: (meta: HexxonAiMessage['meta']) => void,
   onToolStart?: (info: { name: string; description: string }) => void,
 ): Promise<void> {
   const systemPrompt = await buildSystemPrompt(context)
@@ -591,7 +591,7 @@ export async function orchestrateStream(
 async function logUsage(model: string, inputTokens: number, outputTokens: number, cost: number, durationMs: number) {
   try {
     await supabase.from('ai_usage_log').insert({
-      service: 'jarvis',
+      service: 'hexxon-ai',
       model,
       input_tokens: inputTokens,
       output_tokens: outputTokens,
